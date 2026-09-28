@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
+use App\Models\JobPosting;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +17,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $admin = User::factory()->create([
+            'name' => 'Pradhi Admin',
+            'email' => 'admin@pradhiassociates.com',
         ]);
+
+        if (app()->environment('local')) {
+            Company::factory(5)->create()->each(function (Company $company) use ($admin): void {
+                JobPosting::factory(random_int(1, 3))
+                    ->published()
+                    ->for($company)
+                    ->for($admin, 'postedBy')
+                    ->create();
+            });
+        }
     }
 }
