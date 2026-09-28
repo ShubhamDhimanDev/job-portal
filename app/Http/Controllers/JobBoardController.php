@@ -6,6 +6,7 @@ use App\Enums\EmploymentType;
 use App\Enums\JobStatus;
 use App\Enums\WorkMode;
 use App\Http\Requests\JobApplicationStoreRequest;
+use App\Jobs\RateCandidateApplication;
 use App\Models\JobPosting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,13 +74,15 @@ class JobBoardController extends Controller
             'local',
         );
 
-        $jobPosting->applications()->create([
+        $application = $jobPosting->applications()->create([
             'name' => $request->validated('name'),
             'email' => $request->validated('email'),
             'phone' => $request->validated('phone'),
             'resume_path' => $path,
             'cover_note' => $request->validated('cover_note'),
         ]);
+
+        RateCandidateApplication::dispatch($application);
 
         return back()->with('success', "Thanks, we've received your application.");
     }

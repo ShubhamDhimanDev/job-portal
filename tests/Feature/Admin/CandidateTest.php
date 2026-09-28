@@ -1,11 +1,14 @@
 <?php
 
+use App\Enums\AiRatingStatus;
 use App\Enums\ApplicationStatus;
+use App\Jobs\RateCandidateApplication;
 use App\Models\Company;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -139,4 +142,40 @@ test('resume download 404s for a non-existent candidate id', function () {
     $response = $this->actingAs($admin)->get('/admin/candidates/999999/resume');
 
     $response->assertNotFound();
+});
+
+test('candidates list can be sorted by ai score, highest first, with unrated last', function () {
+    $admin = User::factory()->create();
+
+    $low = JobApplication::factory()->create(['ai_status' => AiRatingStatus::Completed, 'ai_score' => 3]);
+    $high = JobApplication::factory()->create(['ai_status' => AiRatingStatus::Completed, 'ai_score' => 9]);
+    $unrated = JobApplication::factory()->create(['ai_status' => AiRatingStatus::Pending, 'ai_score' => null]);
+
+    $response = $this->actingAs($admin)->get('/admin/candidates?sort=ai_score');
+
+    $response->assertOk();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->component('admin/candidates/index')
+        ->where('candidates.data.0.id', $high->id)
+        ->where('candidates.data.1.id', $low->id)
+        ->where('candidates.data.2.id', $unrated->id)
+        ->where('filters.sort', 'ai_score')
+    );
+});
+
+test('admin can trigger a re-rate for a candidate', function () {
+    Bus::fake();
+
+    $admin = User::factory()->create();
+    $application = JobApplication::factory()->create(['ai_status' => AiRatingStatus::Failed]);
+
+    $response = $this->actingAs($admin)->post("/admin/candidates/{$application->id}/rate");
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+
+    Bus::assertDispatched(
+        RateCandidateApplication::class,
+        fn (RateCandidateApplication $job) => $job->jobApplication->is($application)
+    );
 });

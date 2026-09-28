@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\RateCandidateApplication;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -67,6 +69,7 @@ test('job detail page renders a published job', function () {
 
 test('a candidate can apply to a published job', function () {
     Storage::fake('local');
+    Bus::fake();
 
     $job = JobPosting::factory()->published()->create();
     $resume = UploadedFile::fake()->create('resume.pdf', 200, 'application/pdf');
@@ -92,6 +95,11 @@ test('a candidate can apply to a published job', function () {
     expect($application->resume_path)->toStartWith("resumes/{$job->id}/");
 
     Storage::disk('local')->assertExists($application->resume_path);
+
+    Bus::assertDispatched(
+        RateCandidateApplication::class,
+        fn (RateCandidateApplication $rating) => $rating->jobApplication->is($application)
+    );
 });
 
 test('applying to a non-published job is not found', function () {

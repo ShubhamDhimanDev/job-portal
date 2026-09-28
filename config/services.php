@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'candidate_rating' => [
+        'provider' => env('CANDIDATE_RATING_AI_PROVIDER', 'gemini'),
+        'model' => env('CANDIDATE_RATING_AI_MODEL', 'gemini-3.5-flash-lite'),
+    ],
+
 ];

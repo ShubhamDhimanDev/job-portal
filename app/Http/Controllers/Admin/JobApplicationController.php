@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Concerns\FiltersCandidates;
 use App\Enums\ApplicationStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\RateCandidateApplication;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
 use Illuminate\Http\RedirectResponse;
@@ -24,12 +25,17 @@ class JobApplicationController extends Controller
     {
         /** @var array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null} $filters */
         $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search']);
+        $sort = $request->string('sort')->toString();
 
-        $candidates = $this->applyCandidateFilters(
+        $query = $this->applyCandidateFilters(
             JobApplication::query()->with('jobPosting.company'),
             $filters
+        );
+
+        $candidates = ($sort === 'ai_score'
+            ? $query->orderByRaw('ai_score IS NULL')->orderByDesc('ai_score')
+            : $query->orderByDesc('created_at')
         )
-            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString()
@@ -48,6 +54,14 @@ class JobApplicationController extends Controller
                 ],
                 'company_name' => $application->jobPosting->company?->name,
                 'resume_filename' => basename($application->resume_path),
+                'ai_status' => $application->ai_status->value,
+                'ai_status_label' => $application->ai_status->label(),
+                'ai_score' => $application->ai_score,
+                'ai_reasoning' => $application->ai_reasoning,
+                'ai_strengths' => $application->ai_strengths,
+                'ai_gaps' => $application->ai_gaps,
+                'ai_profile' => $application->ai_profile,
+                'ai_error' => $application->ai_error,
             ]);
 
         return Inertia::render('admin/candidates/index', [
@@ -67,12 +81,20 @@ class JobApplicationController extends Controller
                 'date_from' => $filters['date_from'] ?? null,
                 'date_to' => $filters['date_to'] ?? null,
                 'search' => $filters['search'] ?? null,
+                'sort' => $sort !== '' ? $sort : null,
             ],
             'flash' => [
                 'success' => session('success'),
                 'error' => session('error'),
             ],
         ]);
+    }
+
+    public function rate(JobApplication $jobApplication): RedirectResponse
+    {
+        RateCandidateApplication::dispatch($jobApplication);
+
+        return back()->with('success', 'Re-rating this candidate now - refresh in a few seconds.');
     }
 
     public function update(Request $request, JobApplication $jobApplication): RedirectResponse
