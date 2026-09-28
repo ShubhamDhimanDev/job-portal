@@ -96,6 +96,13 @@ export default function ThemeLayout({
                                 <span className="absolute -bottom-1.5 left-0 h-0.5 w-0 rounded-full bg-brand-ink transition-all duration-300 group-hover:w-full" />
                             </a>
                         ))}
+                        <Link
+                            href="/jobs"
+                            className="group relative text-lg font-bold text-brand-ink/80 transition-colors hover:text-brand-ink"
+                        >
+                            Careers
+                            <span className="absolute -bottom-1.5 left-0 h-0.5 w-0 rounded-full bg-brand-ink transition-all duration-300 group-hover:w-full" />
+                        </Link>
                     </nav>
 
                     <motion.a
@@ -149,6 +156,13 @@ export default function ThemeLayout({
                                     {link.label}
                                 </motion.a>
                             ))}
+                            <Link
+                                href="/jobs"
+                                onClick={() => setMobileOpen(false)}
+                                className="border-b border-brand-ink/10 py-4 text-3xl font-extrabold text-brand-ink"
+                            >
+                                Careers
+                            </Link>
                             <motion.a
                                 variants={mobileLinkVariants}
                                 href="#contact"
