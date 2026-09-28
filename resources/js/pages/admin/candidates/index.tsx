@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { Download, Mail, Search } from 'lucide-react';
+import { Download, Mail, RefreshCw, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import {
 } from '@/actions/App/Http/Controllers/Admin/CandidateExportController';
 import {
     index,
+    rate,
     resume,
     update,
 } from '@/actions/App/Http/Controllers/Admin/JobApplicationController';
@@ -34,6 +35,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AdminLayout from '@/layouts/admin-layout';
+import { cn } from '@/lib/utils';
 
 interface JobPostingOption {
     id: number;
@@ -43,6 +45,30 @@ interface JobPostingOption {
 interface StatusOption {
     value: string;
     label: string;
+}
+
+type AiStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+interface AiProfileEducation {
+    degree: string;
+    institution: string;
+    year: string | null;
+}
+
+interface AiProfileWorkHistory {
+    company: string;
+    title: string;
+    start: string | null;
+    end: string | null;
+}
+
+interface AiProfile {
+    skills: string[];
+    total_experience_years: number | null;
+    education: AiProfileEducation[];
+    work_history: AiProfileWorkHistory[];
+    certifications: string[];
+    summary: string;
 }
 
 interface CandidateRow {
@@ -60,6 +86,14 @@ interface CandidateRow {
     };
     company_name: string | null;
     resume_filename: string;
+    ai_status: AiStatus;
+    ai_status_label: string;
+    ai_score: number | null;
+    ai_reasoning: string | null;
+    ai_strengths: string[] | null;
+    ai_gaps: string[] | null;
+    ai_profile: AiProfile | null;
+    ai_error: string | null;
 }
 
 interface PaginationLink {
@@ -85,6 +119,7 @@ interface CandidateFilters {
     date_from: string | null;
     date_to: string | null;
     search: string | null;
+    sort: string | null;
 }
 
 interface CandidatesIndexProps {
@@ -108,6 +143,18 @@ const statusBadgeVariant: Record<
     rejected: 'destructive',
     hired: 'default',
 };
+
+function aiScoreBadgeClassName(score: number): string {
+    if (score >= 8) {
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400';
+    }
+
+    if (score >= 5) {
+        return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400';
+    }
+
+    return 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400';
+}
 
 function parseAddressList(value: string): string[] {
     return Array.from(
@@ -134,7 +181,11 @@ export default function CandidatesIndex({
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
     const [search, setSearch] = useState(filters.search ?? '');
+    const [sort, setSort] = useState(filters.sort ?? 'newest');
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+    const [reratingId, setReratingId] = useState<number | null>(null);
+    const [aiDetailCandidate, setAiDetailCandidate] =
+        useState<CandidateRow | null>(null);
 
     useEffect(() => {
         if (flash.success) {
@@ -158,6 +209,7 @@ export default function CandidatesIndex({
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
                 search: search || undefined,
+                sort: sort === 'newest' ? undefined : sort,
             },
             { preserveState: true, preserveScroll: true, replace: true },
         );
@@ -169,6 +221,7 @@ export default function CandidatesIndex({
         setDateFrom('');
         setDateTo('');
         setSearch('');
+        setSort('newest');
         router.get(
             index.url(),
             {},
@@ -181,6 +234,19 @@ export default function CandidatesIndex({
             update.url(candidateId),
             { status: newStatus },
             { preserveState: true, preserveScroll: true },
+        );
+    }
+
+    function rerateCandidate(candidateId: number) {
+        setReratingId(candidateId);
+        router.post(
+            rate.url(candidateId),
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onFinish: () => setReratingId(null),
+            },
         );
     }
 
@@ -204,7 +270,7 @@ export default function CandidatesIndex({
                     <CardContent>
                         <form
                             onSubmit={applyFilters}
-                            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6"
+                            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7"
                         >
                             <div className="lg:col-span-2">
                                 <Label className="mb-1.5 block text-xs text-muted-foreground">
@@ -301,7 +367,26 @@ export default function CandidatesIndex({
                                 </div>
                             </div>
 
-                            <div className="flex items-end gap-2 lg:col-span-6">
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Sort
+                                </Label>
+                                <Select value={sort} onValueChange={setSort}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">
+                                            Newest
+                                        </SelectItem>
+                                        <SelectItem value="ai_score">
+                                            Best fit
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-end gap-2 lg:col-span-7">
                                 <Button type="submit">Apply filters</Button>
                                 <Button
                                     type="button"
@@ -355,6 +440,9 @@ export default function CandidatesIndex({
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
                                             Status
+                                        </th>
+                                        <th className="pr-3 pb-2 font-medium">
+                                            AI Fit
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
                                             Applied
@@ -428,6 +516,97 @@ export default function CandidatesIndex({
                                                     </select>
                                                 </div>
                                             </td>
+                                            <td className="py-3 pr-3 align-top">
+                                                <div className="flex flex-col items-start gap-1.5">
+                                                    {candidate.ai_status ===
+                                                        'completed' &&
+                                                    candidate.ai_score !==
+                                                        null ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setAiDetailCandidate(
+                                                                    candidate,
+                                                                )
+                                                            }
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={cn(
+                                                                    'w-fit',
+                                                                    aiScoreBadgeClassName(
+                                                                        candidate.ai_score,
+                                                                    ),
+                                                                )}
+                                                            >
+                                                                {
+                                                                    candidate.ai_score
+                                                                }
+                                                                /10
+                                                            </Badge>
+                                                        </button>
+                                                    ) : candidate.ai_status ===
+                                                      'failed' ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setAiDetailCandidate(
+                                                                    candidate,
+                                                                )
+                                                            }
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <Badge
+                                                                variant="destructive"
+                                                                className="w-fit"
+                                                            >
+                                                                {
+                                                                    candidate.ai_status_label
+                                                                }
+                                                            </Badge>
+                                                        </button>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="w-fit text-muted-foreground"
+                                                        >
+                                                            {
+                                                                candidate.ai_status_label
+                                                            }
+                                                        </Badge>
+                                                    )}
+
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-1.5 text-xs text-muted-foreground"
+                                                        disabled={
+                                                            reratingId ===
+                                                            candidate.id
+                                                        }
+                                                        onClick={() =>
+                                                            rerateCandidate(
+                                                                candidate.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        <RefreshCw
+                                                            className={cn(
+                                                                'size-3',
+                                                                reratingId ===
+                                                                    candidate.id &&
+                                                                    'animate-spin',
+                                                            )}
+                                                        />
+                                                        {candidate.ai_status ===
+                                                        'failed'
+                                                            ? 'Retry'
+                                                            : 'Re-rate'}
+                                                    </Button>
+                                                </div>
+                                            </td>
                                             <td className="py-3 pr-3 align-top whitespace-nowrap">
                                                 {candidate.applied_at}
                                             </td>
@@ -447,7 +626,7 @@ export default function CandidatesIndex({
                                     {candidates.data.length === 0 && (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={7}
                                                 className="py-8 text-center text-muted-foreground"
                                             >
                                                 No candidates match these
@@ -490,6 +669,15 @@ export default function CandidatesIndex({
                     </CardContent>
                 </Card>
             </div>
+
+            <CandidateAiDetailDialog
+                candidate={aiDetailCandidate}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setAiDetailCandidate(null);
+                    }
+                }}
+            />
         </AdminLayout>
     );
 }
@@ -635,6 +823,231 @@ function EmailExportDialog({
                         </Button>
                     </DialogFooter>
                 </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+interface CandidateAiDetailDialogProps {
+    candidate: CandidateRow | null;
+    onOpenChange: (open: boolean) => void;
+}
+
+function CandidateAiDetailDialog({
+    candidate,
+    onOpenChange,
+}: CandidateAiDetailDialogProps) {
+    const profile = candidate?.ai_profile ?? null;
+
+    return (
+        <Dialog open={candidate !== null} onOpenChange={onOpenChange}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+                {candidate && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex flex-wrap items-center gap-2">
+                                {candidate.name}
+                                {candidate.ai_score !== null && (
+                                    <Badge
+                                        variant="outline"
+                                        className={aiScoreBadgeClassName(
+                                            candidate.ai_score,
+                                        )}
+                                    >
+                                        {candidate.ai_score}/10
+                                    </Badge>
+                                )}
+                            </DialogTitle>
+                            <DialogDescription>
+                                AI fit rating for {candidate.job_posting.title}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-5">
+                            {candidate.ai_status === 'failed' &&
+                                candidate.ai_error && (
+                                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                                        {candidate.ai_error}
+                                    </div>
+                                )}
+
+                            {candidate.ai_reasoning && (
+                                <div>
+                                    <h4 className="mb-1 text-sm font-medium">
+                                        Reasoning
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {candidate.ai_reasoning}
+                                    </p>
+                                </div>
+                            )}
+
+                            {candidate.ai_strengths &&
+                                candidate.ai_strengths.length > 0 && (
+                                    <div>
+                                        <h4 className="mb-1 text-sm font-medium">
+                                            Strengths
+                                        </h4>
+                                        <ul className="list-inside list-disc text-sm text-muted-foreground">
+                                            {candidate.ai_strengths.map(
+                                                (strength) => (
+                                                    <li key={strength}>
+                                                        {strength}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+
+                            {candidate.ai_gaps &&
+                                candidate.ai_gaps.length > 0 && (
+                                    <div>
+                                        <h4 className="mb-1 text-sm font-medium">
+                                            Gaps
+                                        </h4>
+                                        <ul className="list-inside list-disc text-sm text-muted-foreground">
+                                            {candidate.ai_gaps.map((gap) => (
+                                                <li key={gap}>{gap}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                            {profile && (
+                                <div className="space-y-4 border-t pt-4">
+                                    <h3 className="text-sm font-semibold">
+                                        Parsed resume profile
+                                    </h3>
+
+                                    {profile.summary && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {profile.summary}
+                                        </p>
+                                    )}
+
+                                    <div>
+                                        <h4 className="mb-1 text-xs text-muted-foreground">
+                                            Total experience
+                                        </h4>
+                                        <p className="text-sm">
+                                            {profile.total_experience_years !==
+                                            null
+                                                ? `${profile.total_experience_years} years`
+                                                : '—'}
+                                        </p>
+                                    </div>
+
+                                    {profile.skills.length > 0 && (
+                                        <div>
+                                            <h4 className="mb-1.5 text-sm font-medium">
+                                                Skills
+                                            </h4>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {profile.skills.map((skill) => (
+                                                    <Badge
+                                                        key={skill}
+                                                        variant="secondary"
+                                                    >
+                                                        {skill}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {profile.work_history.length > 0 && (
+                                        <div>
+                                            <h4 className="mb-1.5 text-sm font-medium">
+                                                Work history
+                                            </h4>
+                                            <ul className="space-y-2 text-sm">
+                                                {profile.work_history.map(
+                                                    (job, index) => (
+                                                        <li
+                                                            key={`${job.company}-${job.title}-${index}`}
+                                                        >
+                                                            <div className="font-medium">
+                                                                {job.title} ·{' '}
+                                                                {job.company}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {job.start ??
+                                                                    '—'}{' '}
+                                                                –{' '}
+                                                                {job.end ??
+                                                                    'Present'}
+                                                            </div>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {profile.education.length > 0 && (
+                                        <div>
+                                            <h4 className="mb-1.5 text-sm font-medium">
+                                                Education
+                                            </h4>
+                                            <ul className="space-y-2 text-sm">
+                                                {profile.education.map(
+                                                    (edu, index) => (
+                                                        <li
+                                                            key={`${edu.institution}-${edu.degree}-${index}`}
+                                                        >
+                                                            <div className="font-medium">
+                                                                {edu.degree}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {
+                                                                    edu.institution
+                                                                }
+                                                                {edu.year
+                                                                    ? ` · ${edu.year}`
+                                                                    : ''}
+                                                            </div>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {profile.certifications.length > 0 && (
+                                        <div>
+                                            <h4 className="mb-1.5 text-sm font-medium">
+                                                Certifications
+                                            </h4>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {profile.certifications.map(
+                                                    (cert) => (
+                                                        <Badge
+                                                            key={cert}
+                                                            variant="outline"
+                                                        >
+                                                            {cert}
+                                                        </Badge>
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Close
+                            </Button>
+                        </DialogFooter>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     );
