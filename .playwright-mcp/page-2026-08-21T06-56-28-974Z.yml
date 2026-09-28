@@ -1,0 +1,253 @@
+- generic [ref=f4e2]:
+  - generic [ref=f4e3]:
+    - banner [ref=f4e4]:
+      - generic [ref=f4e5]:
+        - link "Pradhi Associates Pradhi Associates Wise Choices Drive Excellence" [ref=f4e6] [cursor=pointer]:
+          - /url: /
+          - img "Pradhi Associates" [ref=f4e7]
+          - generic [ref=f4e8]:
+            - generic [ref=f4e9]: Pradhi Associates
+            - generic [ref=f4e10]: Wise Choices Drive Excellence
+        - navigation [ref=f4e11]:
+          - link "Home" [ref=f4e12] [cursor=pointer]:
+            - /url: "#top"
+          - link "Services" [ref=f4e13] [cursor=pointer]:
+            - /url: "#services"
+          - link "Approach" [ref=f4e14] [cursor=pointer]:
+            - /url: "#approach"
+          - link "Contact" [ref=f4e15] [cursor=pointer]:
+            - /url: "#contact"
+        - link "Get in Touch" [ref=f4e16] [cursor=pointer]:
+          - /url: "#contact"
+    - main [ref=f4e20]:
+      - generic [ref=f4e21]:
+        - img "Pradhi Associates team at work" [ref=f4e22]
+        - generic [ref=f4e25]:
+          - heading "Wise Choices Drive Excellence" [level=1] [ref=f4e26]
+          - paragraph [ref=f4e27]: We partner with organisations to solve aging positions, niche skill gaps, and leadership hiring challenges — complementing your in-house team with deep Fortune 500 expertise.
+          - generic [ref=f4e28]:
+            - link "Explore Our Services" [ref=f4e30] [cursor=pointer]:
+              - /url: "#services"
+            - link "Get in Touch" [ref=f4e33] [cursor=pointer]:
+              - /url: "#contact"
+      - generic [ref=f4e40]:
+        - generic [ref=f4e41]:
+          - text: WHAT WE ADDRESS
+          - heading "Problem We Solve" [level=2] [ref=f4e42]
+        - generic [ref=f4e43]:
+          - generic [ref=f4e47]:
+            - button "Aging Positions" [ref=f4e48]
+            - button "Niche & Leadership" [ref=f4e50]
+            - button "Recruitment Tech" [ref=f4e52]
+          - generic [ref=f4e55]:
+            - img "Aging positions of 60+ days despite multiple vendors" [ref=f4e57]
+            - generic [ref=f4e58]:
+              - generic [ref=f4e63]: The Challenge
+              - heading "Aging positions of 60+ days despite multiple vendors" [level=3] [ref=f4e64]
+              - generic [ref=f4e65]:
+                - generic [ref=f4e66]: How We Help
+                - paragraph [ref=f4e67]: Diagnosing ageing reasons, job positioning, and partnering with your in-house hiring team to fix the challenges around the roles.
+      - generic [ref=f4e68]:
+        - generic [ref=f4e70]:
+          - text: HOW WE WORK
+          - heading "Efficient Integration in Searches" [level=2] [ref=f4e71]
+        - generic [ref=f4e72]:
+          - generic [ref=f4e73]:
+            - generic [ref=f4e74]:
+              - generic: "01"
+              - generic [ref=f4e75]:
+                - generic [ref=f4e76]: Step 01
+                - heading "Tailored Strategic Acquisition Solutions" [level=3] [ref=f4e79]
+                - paragraph [ref=f4e80]: Custom solutions built around your ageing reasons and job positioning, complementing and supplementing your in-house hiring team.
+            - img "Team planning a recruitment strategy" [ref=f4e82]
+          - generic [ref=f4e83]:
+            - generic [ref=f4e84]:
+              - generic: "02"
+              - generic [ref=f4e85]:
+                - generic [ref=f4e86]: Step 02
+                - heading "Talent Mapping and Management" [level=3] [ref=f4e91]
+                - paragraph [ref=f4e92]: Strategic identification and management of talent pipelines to enhance workforce efficiency and reduce time-to-hire for critical positions.
+            - img "Team mapping out a talent pipeline on a whiteboard" [ref=f4e94]
+          - generic [ref=f4e95]:
+            - generic [ref=f4e96]:
+              - generic: "03"
+              - generic [ref=f4e97]:
+                - generic [ref=f4e98]: Step 03
+                - heading "Leveraging HR Technology" [level=3] [ref=f4e104]
+                - paragraph [ref=f4e105]: Advanced HR technology — ATS, AI screening, digital assessments — to streamline processes and dramatically improve hiring outcomes.
+            - img "Recruiter working across multiple screens of hiring software" [ref=f4e107]
+      - generic [ref=f4e109]:
+        - generic [ref=f4e110]:
+          - text: WHAT WE OFFER
+          - heading "Everything Behind Every Successful Search" [level=2] [ref=f4e111]
+          - paragraph [ref=f4e112]: From leadership search to technology integration — a complete talent partner, not just a vendor.
+        - generic [ref=f4e113]:
+          - generic [ref=f4e114]:
+            - generic [ref=f4e115]:
+              - text: OUR STRENGTHS
+              - heading "Key Core Competencies" [level=3] [ref=f4e116]
+            - generic [ref=f4e117]:
+              - generic [ref=f4e121]:
+                - heading "Strategic Leadership" [level=4] [ref=f4e125]
+                - paragraph [ref=f4e126]: Established new captives, optimized structures, and advanced talent management across global organisations.
+              - generic [ref=f4e127]:
+                - generic [ref=f4e128]:
+                  - heading "Brand Storytelling" [level=4] [ref=f4e133]
+                  - paragraph [ref=f4e134]: Crafted engaging content for social media and developed internal and external EVP to attract top talent.
+                - generic [ref=f4e135]:
+                  - heading "Competitor Talent Mapping" [level=4] [ref=f4e142]
+                  - paragraph [ref=f4e143]: Diagnosing why acquisition teams face 60+ day ageing despite 200 empanelled vendors — and fixing it.
+                - generic [ref=f4e144]:
+                  - heading "Operational Efficiency" [level=4] [ref=f4e148]
+                  - paragraph [ref=f4e149]: Utilized HR tools for enterprise-wide technology integration and process transformations at scale.
+          - generic [ref=f4e150]:
+            - generic [ref=f4e151]:
+              - text: OUR APPROACH
+              - heading "Comprehensive Recruitment Strategies" [level=3] [ref=f4e152]
+              - paragraph [ref=f4e153]: Six pillars that keep every engagement structured, accountable, and efficient.
+            - generic [ref=f4e154]:
+              - generic [ref=f4e155]:
+                - button [ref=f4e156]:
+                  - generic [ref=f4e163]:
+                    - heading "Strategic HR & Talent Management" [level=4] [ref=f4e164]
+                    - paragraph [ref=f4e165]: Enhancing workforce efficiency through strategic HR practices.
+                - button [ref=f4e166]:
+                  - generic [ref=f4e170]:
+                    - heading "Technology Partner Collaboration" [level=4] [ref=f4e171]
+                    - paragraph [ref=f4e172]: Utilizing technology partners to streamline recruitment processes.
+                - button [ref=f4e173]:
+                  - generic [ref=f4e180]:
+                    - heading "Flexible Service Partnerships" [level=4] [ref=f4e181]
+                    - paragraph [ref=f4e182]: Offering flexible staffing solutions to meet evolving business needs.
+                - button [ref=f4e183]:
+                  - generic [ref=f4e188]:
+                    - heading "Budget Management Improvement" [level=4] [ref=f4e189]
+                    - paragraph [ref=f4e190]: Optimizing budgets for recruitment and staffing expenses.
+                - button [ref=f4e191]:
+                  - generic [ref=f4e196]:
+                    - heading "Risk Mitigation Strategies" [level=4] [ref=f4e197]
+                    - paragraph [ref=f4e198]: Implementing strategies to reduce recruitment-related risks.
+                - button [ref=f4e199]:
+                  - generic [ref=f4e203]:
+                    - heading "Conflict Management Solutions" [level=4] [ref=f4e204]
+                    - paragraph [ref=f4e205]: Addressing and resolving conflicts in staffing effectively.
+              - generic [ref=f4e206]:
+                - img "Strategic HR & Talent Management" [ref=f4e207]
+                - generic [ref=f4e209]:
+                  - generic [ref=f4e210]: Pillar 01
+                  - heading "Strategic HR & Talent Management" [level=4] [ref=f4e211]
+                  - paragraph [ref=f4e212]: Enhancing workforce efficiency through strategic HR practices.
+          - generic [ref=f4e213]:
+            - generic [ref=f4e214]:
+              - text: OUR SOLUTIONS
+              - heading "Comprehensive Talent Management Solutions" [level=3] [ref=f4e215]
+              - paragraph [ref=f4e216]: Explore our tailored consulting solutions for talent management
+            - generic [ref=f4e217]:
+              - generic [ref=f4e218]:
+                - generic [ref=f4e219]: "1"
+                - generic [ref=f4e222]:
+                  - heading "HR Advisory Services" [level=4] [ref=f4e223]
+                  - paragraph [ref=f4e224]: Offering turn-key projects tailored to client needs.
+              - generic [ref=f4e225]:
+                - generic [ref=f4e226]: "2"
+                - generic [ref=f4e229]:
+                  - heading "Master Recruitment Services" [level=4] [ref=f4e230]
+                  - paragraph [ref=f4e231]: Streamlined vendor management minimizes risks and conflicts.
+              - generic [ref=f4e232]:
+                - generic [ref=f4e233]: "3"
+                - generic [ref=f4e236]:
+                  - heading "Contract to Hire Strategy" [level=4] [ref=f4e237]
+                  - paragraph [ref=f4e238]: Campus and contract staff can transition post performance review.
+              - generic [ref=f4e239]:
+                - generic [ref=f4e240]: "4"
+                - generic [ref=f4e243]:
+                  - heading "Pre Hire Training Programs" [level=4] [ref=f4e244]
+                  - paragraph [ref=f4e245]: Training campus candidates while still in college to expedite hiring.
+          - generic [ref=f4e246]:
+            - generic [ref=f4e247]:
+              - text: PRICING & SERVICES
+              - heading "Proposals and Commercials Overview" [level=3] [ref=f4e248]
+              - paragraph [ref=f4e249]: Exploring recruitment services and efficiency tools
+            - generic [ref=f4e250]:
+              - generic [ref=f4e253]:
+                - heading "Online Interview Platform Services" [level=4] [ref=f4e258]
+                - paragraph [ref=f4e259]: Conducting interviews online through a dedicated platform.
+              - generic [ref=f4e262]:
+                - heading "Integration of HR Tools" [level=4] [ref=f4e266]
+                - paragraph [ref=f4e267]: Functional integration of plug-in HR tools with enterprise systems.
+              - generic [ref=f4e270]:
+                - heading "AI-Based Resume Screening" [level=4] [ref=f4e279]
+                - paragraph [ref=f4e280]: AI technology to streamline and enhance resume screening.
+              - generic [ref=f4e283]:
+                - heading "Turnkey IT Projects Partnerships" [level=4] [ref=f4e287]
+                - paragraph [ref=f4e288]: Partner for turnkey IT projects to deliver comprehensive solutions.
+              - generic [ref=f4e291]:
+                - heading "Online Testing Solutions" [level=4] [ref=f4e297]
+                - paragraph [ref=f4e298]: Testing solutions online to assess candidates' skills effectively.
+              - link [ref=f4e300] [cursor=pointer]:
+                - /url: "#contact"
+                - generic [ref=f4e301]:
+                  - heading "Need a custom quote?" [level=4] [ref=f4e305]
+                  - paragraph [ref=f4e306]: Tell us about your hiring needs and we'll tailor a plan.
+                - generic [ref=f4e307]: Get in Touch
+      - generic [ref=f4e310]:
+        - img "Connect with Pradhi Associates" [ref=f4e311]
+        - generic [ref=f4e313]:
+          - heading "Connect with Pradhi Associates Today" [level=2] [ref=f4e314]
+          - paragraph [ref=f4e315]: Thank you for your attention. For enquiries, reach out — we respond within 24 hours.
+          - generic [ref=f4e316]:
+            - link "laksh_madhu@pradhiassociates.com" [ref=f4e317] [cursor=pointer]:
+              - /url: mailto:laksh_madhu@pradhiassociates.com
+            - link "+91 9910163337" [ref=f4e321] [cursor=pointer]:
+              - /url: tel:+919910163337
+          - link "Get in Touch" [ref=f4e325] [cursor=pointer]:
+            - /url: mailto:laksh_madhu@pradhiassociates.com
+    - contentinfo [ref=f4e328]:
+      - generic [ref=f4e329]:
+        - generic [ref=f4e330]:
+          - link "Pradhi Associates Pradhi Associates Wise Choices Drive Excellence" [ref=f4e331] [cursor=pointer]:
+            - /url: /
+            - img "Pradhi Associates" [ref=f4e332]
+            - generic [ref=f4e333]:
+              - generic [ref=f4e334]: Pradhi Associates
+              - generic [ref=f4e335]: Wise Choices Drive Excellence
+          - paragraph [ref=f4e336]: Strategic partners in talent acquisition. Wise choices drive excellence.
+          - generic [ref=f4e337]:
+            - link [ref=f4e338] [cursor=pointer]:
+              - /url: "#"
+            - link [ref=f4e343] [cursor=pointer]:
+              - /url: "#"
+            - link [ref=f4e346] [cursor=pointer]:
+              - /url: "#"
+        - generic [ref=f4e349]:
+          - heading "Contact Info" [level=4] [ref=f4e350]
+          - list [ref=f4e351]:
+            - listitem [ref=f4e352]:
+              - link "laksh_madhu@pradhiassociates.com" [ref=f4e353] [cursor=pointer]:
+                - /url: mailto:laksh_madhu@pradhiassociates.com
+            - listitem [ref=f4e354]:
+              - link "+91 9910163337" [ref=f4e355] [cursor=pointer]:
+                - /url: tel:+919910163337
+        - generic [ref=f4e356]:
+          - heading "Quick Links" [level=4] [ref=f4e357]
+          - list [ref=f4e358]:
+            - listitem [ref=f4e359]:
+              - link "Home" [ref=f4e360] [cursor=pointer]:
+                - /url: "#top"
+            - listitem [ref=f4e361]:
+              - link "Services" [ref=f4e362] [cursor=pointer]:
+                - /url: "#services"
+            - listitem [ref=f4e363]:
+              - link "Approach" [ref=f4e364] [cursor=pointer]:
+                - /url: "#approach"
+            - listitem [ref=f4e365]:
+              - link "Contact" [ref=f4e366] [cursor=pointer]:
+                - /url: "#contact"
+        - generic [ref=f4e367]:
+          - heading "Get in Touch" [level=4] [ref=f4e368]
+          - link "Email us" [ref=f4e369] [cursor=pointer]:
+            - /url: mailto:laksh_madhu@pradhiassociates.com
+          - link "Call us" [ref=f4e373] [cursor=pointer]:
+            - /url: tel:+919910163337
+      - generic [ref=f4e376]: © 2026 Pradhi Associates. All rights reserved.
+  - region "Notifications alt+T"

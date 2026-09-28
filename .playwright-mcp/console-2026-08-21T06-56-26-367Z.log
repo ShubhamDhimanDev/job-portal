@@ -1,0 +1,6 @@
+[    1472ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://127.0.0.1:8000/_boost/browser-logs @ http://127.0.0.1:8000/:172
+[    1945ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:8000/:231
+[  120671ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:8000/:231
+[  122820ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8000/_boost/browser-logs:0
+[  122820ms] [ERROR] Failed to send logs: TypeError: Failed to fetch
+    at flushLogs (http://127.0.0.1:8000/:209:9) @ http://127.0.0.1:8000/:217
