@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Files;
 use PhpOffice\PhpWord\Element\AbstractContainer;
@@ -26,6 +27,11 @@ class RateCandidateApplication implements ShouldQueue
     public function handle(): void
     {
         $this->jobApplication->update(['ai_status' => AiRatingStatus::Processing]);
+
+        Log::info('Rating candidate application', [
+            'job_application_id' => $this->jobApplication->id,
+            'job_posting_id' => $this->jobApplication->job_posting_id,
+        ]);
 
         try {
             $agent = new CandidateRatingAgent($this->jobApplication->jobPosting);
@@ -55,6 +61,12 @@ class RateCandidateApplication implements ShouldQueue
                 'ai_error' => null,
             ]);
         } catch (Throwable $e) {
+            Log::error('Candidate application rating failed', [
+                'job_application_id' => $this->jobApplication->id,
+                'job_posting_id' => $this->jobApplication->job_posting_id,
+                'exception' => $e,
+            ]);
+
             $this->jobApplication->update([
                 'ai_status' => AiRatingStatus::Failed,
                 'ai_error' => $e->getMessage(),
