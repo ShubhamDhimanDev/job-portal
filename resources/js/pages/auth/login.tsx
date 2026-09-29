@@ -33,7 +33,12 @@ export default function Login() {
                     {({ errors, processing }) => (
                         <>
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
+                                <Label
+                                    htmlFor="email"
+                                    className="text-brand-ink"
+                                >
+                                    Email
+                                </Label>
                                 <Input
                                     id="email"
                                     name="email"
@@ -41,6 +46,7 @@ export default function Login() {
                                     autoComplete="username"
                                     autoFocus
                                     required
+                                    className="text-brand-ink placeholder:text-brand-ink/40"
                                 />
                                 {errors.email && (
                                     <p className="text-sm text-destructive">
@@ -50,13 +56,19 @@ export default function Login() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label
+                                    htmlFor="password"
+                                    className="text-brand-ink"
+                                >
+                                    Password
+                                </Label>
                                 <Input
                                     id="password"
                                     name="password"
                                     type="password"
                                     autoComplete="current-password"
                                     required
+                                    className="text-brand-ink placeholder:text-brand-ink/40"
                                 />
                                 {errors.password && (
                                     <p className="text-sm text-destructive">
