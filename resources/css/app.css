@@ -158,4 +158,29 @@
     .admin-layout {
         @apply bg-background text-foreground;
     }
+
+    /* Browsers force their own text/background colors on autofilled
+       fields. `-webkit-text-fill-color` is the only one of the pair
+       authors can still override — Chromium's autofill highlight forces
+       `color` itself (even through inline !important), so `currentColor`
+       can't be used here and each theme needs its own explicit value.
+       Stalling the forced background-color transition indefinitely keeps
+       the field's actual (often transparent) background visible instead
+       of the browser's autofill highlight tint. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-text-fill-color: var(--color-foreground) !important;
+        caret-color: var(--color-foreground);
+        transition: background-color 9999s ease-in-out 0s;
+    }
+
+    .text-brand-ink:-webkit-autofill,
+    .text-brand-ink:-webkit-autofill:hover,
+    .text-brand-ink:-webkit-autofill:focus,
+    .text-brand-ink:-webkit-autofill:active {
+        -webkit-text-fill-color: var(--color-brand-ink) !important;
+        caret-color: var(--color-brand-ink);
+    }
 }

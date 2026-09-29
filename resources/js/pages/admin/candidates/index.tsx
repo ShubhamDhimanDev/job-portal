@@ -487,33 +487,39 @@ export default function CandidatesIndex({
                                                     >
                                                         {candidate.status_label}
                                                     </Badge>
-                                                    <select
-                                                        className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                                    <Select
                                                         value={candidate.status}
-                                                        onChange={(e) =>
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
                                                             updateStatus(
                                                                 candidate.id,
-                                                                e.target.value,
+                                                                value,
                                                             )
                                                         }
                                                     >
-                                                        {statuses.map(
-                                                            (option) => (
-                                                                <option
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    value={
-                                                                        option.value
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                        <SelectTrigger className="h-8 w-fit text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {statuses.map(
+                                                                (option) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            option.value
+                                                                        }
+                                                                        value={
+                                                                            option.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            option.label
+                                                                        }
+                                                                    </SelectItem>
+                                                                ),
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                             </td>
                                             <td className="py-3 pr-3 align-top">
