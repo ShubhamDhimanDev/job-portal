@@ -611,14 +611,21 @@ export default function CandidatesIndex({
                                                 {candidate.applied_at}
                                             </td>
                                             <td className="py-3 pr-3 align-top">
-                                                <a
-                                                    href={resume.url(
-                                                        candidate.id,
-                                                    )}
-                                                    className="text-primary underline-offset-4 hover:underline"
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
                                                 >
-                                                    {candidate.resume_filename}
-                                                </a>
+                                                    <a
+                                                        href={resume.url(
+                                                            candidate.id,
+                                                        )}
+                                                        download
+                                                    >
+                                                        <Download />
+                                                        Download
+                                                    </a>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))}

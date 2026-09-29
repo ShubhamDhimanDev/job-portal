@@ -47,7 +47,7 @@ class JobApplicationController extends Controller
                 'status' => $application->status->value,
                 'status_label' => $application->status->label(),
                 'admin_notes' => $application->admin_notes,
-                'applied_at' => $application->created_at?->format('Y-m-d H:i'),
+                'applied_at' => $application->created_at?->format('M j, Y g:i A'),
                 'job_posting' => [
                     'id' => $application->jobPosting->id,
                     'title' => $application->jobPosting->title,
