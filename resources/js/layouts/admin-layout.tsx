@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Briefcase,
     Building2,
+    KeyRound,
     LayoutDashboard,
     LogOut,
     Users,
@@ -133,6 +134,12 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                                     Signed in as {auth.user.email}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/admin/settings/password">
+                                        <KeyRound />
+                                        Change password
+                                    </Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                     <Link
                                         href="/logout"
