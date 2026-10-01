@@ -27,5 +27,4 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-/storage/framework/*.php
 .playwright-mcp/
