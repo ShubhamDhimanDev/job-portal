@@ -1,17 +1,28 @@
-import { router, useForm } from '@inertiajs/react';
-import { Download, Mail, RefreshCw, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Link, router, useForm } from '@inertiajs/react';
+import {
+    Download,
+    Mail,
+    Pencil,
+    Plus,
+    RefreshCw,
+    Search,
+    Upload,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import {
     download,
     email,
 } from '@/actions/App/Http/Controllers/Admin/CandidateExportController';
+import { create as importCandidates } from '@/actions/App/Http/Controllers/Admin/CandidateImportController';
 import {
+    create,
     index,
     rate,
     resume,
     update,
+    uploadResume as uploadResumeAction,
 } from '@/actions/App/Http/Controllers/Admin/JobApplicationController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,7 +96,8 @@ interface CandidateRow {
         title: string;
     };
     company_name: string | null;
-    resume_filename: string;
+    has_resume: boolean;
+    resume_filename: string | null;
     ai_status: AiStatus;
     ai_status_label: string;
     ai_score: number | null;
@@ -186,6 +198,9 @@ export default function CandidatesIndex({
     const [reratingId, setReratingId] = useState<number | null>(null);
     const [aiDetailCandidate, setAiDetailCandidate] =
         useState<CandidateRow | null>(null);
+    const [editCandidate, setEditCandidate] = useState<CandidateRow | null>(
+        null,
+    );
 
     useEffect(() => {
         if (flash.success) {
@@ -234,6 +249,23 @@ export default function CandidatesIndex({
             update.url(candidateId),
             { status: newStatus },
             { preserveState: true, preserveScroll: true },
+        );
+    }
+
+    function uploadResume(candidateId: number, file: File) {
+        router.post(
+            uploadResumeAction.url(candidateId),
+            { resume: file },
+            {
+                forceFormData: true,
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errors) => {
+                    toast.error(
+                        errors.resume ?? 'Could not upload the resume.',
+                    );
+                },
+            },
         );
     }
 
@@ -397,6 +429,18 @@ export default function CandidatesIndex({
                                 </Button>
 
                                 <div className="ml-auto flex gap-2">
+                                    <Button asChild>
+                                        <Link href={create.url()}>
+                                            <Plus />
+                                            Add candidate
+                                        </Link>
+                                    </Button>
+                                    <Button variant="outline" asChild>
+                                        <Link href={importCandidates.url()}>
+                                            <Upload />
+                                            Import
+                                        </Link>
+                                    </Button>
                                     <Button variant="outline" asChild>
                                         <a href={exportUrl}>
                                             <Download />
@@ -468,6 +512,20 @@ export default function CandidatesIndex({
                                                 <div className="text-xs text-muted-foreground">
                                                     {candidate.phone}
                                                 </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="mt-1 h-6 px-1.5 text-xs text-muted-foreground"
+                                                    onClick={() =>
+                                                        setEditCandidate(
+                                                            candidate,
+                                                        )
+                                                    }
+                                                >
+                                                    <Pencil className="size-3" />
+                                                    Edit
+                                                </Button>
                                             </td>
                                             <td className="py-3 pr-3 align-top">
                                                 {candidate.job_posting.title}
@@ -589,8 +647,9 @@ export default function CandidatesIndex({
                                                         size="sm"
                                                         className="h-6 px-1.5 text-xs text-muted-foreground"
                                                         disabled={
+                                                            !candidate.has_resume ||
                                                             reratingId ===
-                                                            candidate.id
+                                                                candidate.id
                                                         }
                                                         onClick={() =>
                                                             rerateCandidate(
@@ -617,21 +676,45 @@ export default function CandidatesIndex({
                                                 {candidate.applied_at}
                                             </td>
                                             <td className="py-3 pr-3 align-top">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    asChild
-                                                >
-                                                    <a
-                                                        href={resume.url(
-                                                            candidate.id,
-                                                        )}
-                                                        download
-                                                    >
-                                                        <Download />
-                                                        Download
-                                                    </a>
-                                                </Button>
+                                                <div className="flex flex-col items-start gap-1.5">
+                                                    {candidate.has_resume ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            asChild
+                                                        >
+                                                            <a
+                                                                href={resume.url(
+                                                                    candidate.id,
+                                                                )}
+                                                                download
+                                                            >
+                                                                <Download />
+                                                                Download
+                                                            </a>
+                                                        </Button>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="w-fit text-muted-foreground"
+                                                        >
+                                                            No resume
+                                                        </Badge>
+                                                    )}
+                                                    <ResumeUploadButton
+                                                        label={
+                                                            candidate.has_resume
+                                                                ? 'Replace'
+                                                                : 'Upload resume'
+                                                        }
+                                                        onSelect={(file) =>
+                                                            uploadResume(
+                                                                candidate.id,
+                                                                file,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -683,6 +766,16 @@ export default function CandidatesIndex({
                 </Card>
             </div>
 
+            <EditCandidateDialog
+                candidate={editCandidate}
+                jobPostings={jobPostings}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditCandidate(null);
+                    }
+                }}
+            />
+
             <CandidateAiDetailDialog
                 candidate={aiDetailCandidate}
                 onOpenChange={(open) => {
@@ -692,6 +785,189 @@ export default function CandidatesIndex({
                 }}
             />
         </AdminLayout>
+    );
+}
+
+interface ResumeUploadButtonProps {
+    label: string;
+    onSelect: (file: File) => void;
+}
+
+function ResumeUploadButton({ label, onSelect }: ResumeUploadButtonProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    return (
+        <>
+            <input
+                ref={inputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                        onSelect(file);
+                    }
+
+                    e.target.value = '';
+                }}
+            />
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-1.5 text-xs text-muted-foreground"
+                onClick={() => inputRef.current?.click()}
+            >
+                <Upload className="size-3" />
+                {label}
+            </Button>
+        </>
+    );
+}
+
+interface EditCandidateDialogProps {
+    candidate: CandidateRow | null;
+    jobPostings: JobPostingOption[];
+    onOpenChange: (open: boolean) => void;
+}
+
+function EditCandidateDialog({
+    candidate,
+    jobPostings,
+    onOpenChange,
+}: EditCandidateDialogProps) {
+    const { data, setData, patch, processing, errors, clearErrors } = useForm({
+        name: '',
+        email: '',
+        phone: '',
+        job_posting_id: '',
+    });
+
+    useEffect(() => {
+        if (candidate) {
+            setData({
+                name: candidate.name,
+                email: candidate.email,
+                phone: candidate.phone,
+                job_posting_id: String(candidate.job_posting.id),
+            });
+            clearErrors();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [candidate]);
+
+    function submit(e: FormEvent) {
+        e.preventDefault();
+
+        if (!candidate) {
+            return;
+        }
+
+        patch(update.url(candidate.id), {
+            preserveScroll: true,
+            onSuccess: () => onOpenChange(false),
+        });
+    }
+
+    return (
+        <Dialog open={candidate !== null} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Edit candidate</DialogTitle>
+                    <DialogDescription>
+                        Moving a candidate to another job re-runs their AI
+                        rating.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={submit} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="edit-name">Name</Label>
+                        <Input
+                            id="edit-name"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                        />
+                        {errors.name && (
+                            <p className="text-sm text-destructive">
+                                {errors.name}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-email">Email</Label>
+                            <Input
+                                id="edit-email"
+                                type="email"
+                                value={data.email}
+                                onChange={(e) =>
+                                    setData('email', e.target.value)
+                                }
+                            />
+                            {errors.email && (
+                                <p className="text-sm text-destructive">
+                                    {errors.email}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-phone">Phone</Label>
+                            <Input
+                                id="edit-phone"
+                                value={data.phone}
+                                onChange={(e) =>
+                                    setData('phone', e.target.value)
+                                }
+                            />
+                            {errors.phone && (
+                                <p className="text-sm text-destructive">
+                                    {errors.phone}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label>Job</Label>
+                        <Select
+                            value={data.job_posting_id}
+                            onValueChange={(value) =>
+                                setData('job_posting_id', value)
+                            }
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {jobPostings.map((job) => (
+                                    <SelectItem
+                                        key={job.id}
+                                        value={String(job.id)}
+                                    >
+                                        {job.title}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.job_posting_id && (
+                            <p className="text-sm text-destructive">
+                                {errors.job_posting_id}
+                            </p>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Saving…' : 'Save changes'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 

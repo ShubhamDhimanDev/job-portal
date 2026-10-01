@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Candidates\AttachCandidateResume;
+use App\Actions\Candidates\CreateCandidateApplication;
 use App\Concerns\FiltersCandidates;
 use App\Enums\ApplicationStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminCandidateStoreRequest;
 use App\Jobs\RateCandidateApplication;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
@@ -53,7 +56,8 @@ class JobApplicationController extends Controller
                     'title' => $application->jobPosting->title,
                 ],
                 'company_name' => $application->jobPosting->company?->name,
-                'resume_filename' => basename($application->resume_path),
+                'has_resume' => $application->resume_path !== null,
+                'resume_filename' => $application->resume_path !== null ? basename($application->resume_path) : null,
                 'ai_status' => $application->ai_status->value,
                 'ai_status_label' => $application->ai_status->label(),
                 'ai_score' => $application->ai_score,
@@ -90,8 +94,34 @@ class JobApplicationController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        return Inertia::render('admin/candidates/create', [
+            'jobPostings' => JobPosting::query()
+                ->orderBy('title')
+                ->get(['id', 'title']),
+        ]);
+    }
+
+    public function store(
+        AdminCandidateStoreRequest $request,
+        CreateCandidateApplication $createCandidateApplication,
+    ): RedirectResponse {
+        $createCandidateApplication->handle(
+            JobPosting::query()->findOrFail($request->validated('job_posting_id')),
+            $request->safe()->only(['name', 'email', 'phone', 'cover_note']),
+            $request->file('resume'),
+        );
+
+        return to_route('admin.candidates.index')->with('success', 'Candidate added.');
+    }
+
     public function rate(JobApplication $jobApplication): RedirectResponse
     {
+        if ($jobApplication->resume_path === null) {
+            return back()->with('error', 'Upload a resume before rating this candidate.');
+        }
+
         RateCandidateApplication::dispatch($jobApplication);
 
         return back()->with('success', 'Re-rating this candidate now - refresh in a few seconds.');
@@ -99,19 +129,57 @@ class JobApplicationController extends Controller
 
     public function update(Request $request, JobApplication $jobApplication): RedirectResponse
     {
+        $targetJobId = $request->input('job_posting_id', $jobApplication->job_posting_id);
+
         $validated = $request->validate([
             'status' => ['sometimes', Rule::enum(ApplicationStatus::class)],
             'admin_notes' => ['sometimes', 'nullable', 'string'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => [
+                'sometimes',
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('job_applications', 'email')
+                    ->where(fn ($query) => $query->where('job_posting_id', $targetJobId))
+                    ->ignore($jobApplication->id),
+            ],
+            'phone' => ['sometimes', 'required', 'string', 'max:50'],
+            'job_posting_id' => ['sometimes', 'required', 'integer', Rule::exists('job_postings', 'id')],
+        ], [
+            'email.unique' => 'This email is already added to the selected job.',
         ]);
 
         $jobApplication->update($validated);
 
+        if ($jobApplication->wasChanged('job_posting_id') && $jobApplication->resume_path !== null) {
+            RateCandidateApplication::dispatch($jobApplication);
+        }
+
         return back()->with('success', 'Candidate updated.');
+    }
+
+    public function uploadResume(
+        Request $request,
+        JobApplication $jobApplication,
+        AttachCandidateResume $attachCandidateResume,
+    ): RedirectResponse {
+        $request->validate([
+            'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
+        ], [
+            'resume.mimes' => 'Resume must be a PDF, DOC, or DOCX file.',
+            'resume.max' => 'Resume must be smaller than 5MB.',
+        ]);
+
+        $attachCandidateResume->handle($jobApplication, $request->file('resume'));
+
+        return back()->with('success', 'Resume uploaded - AI rating is running.');
     }
 
     public function resume(JobApplication $jobApplication): StreamedResponse
     {
-        if (! Storage::disk('local')->exists($jobApplication->resume_path)) {
+        if ($jobApplication->resume_path === null || ! Storage::disk('local')->exists($jobApplication->resume_path)) {
             abort(404);
         }
 

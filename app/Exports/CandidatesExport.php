@@ -63,7 +63,7 @@ class CandidatesExport implements FromQuery, WithHeadings, WithMapping
             $row->phone,
             $row->status->label(),
             $row->created_at?->format('Y-m-d H:i'),
-            basename($row->resume_path),
+            $row->resume_path !== null ? basename($row->resume_path) : null,
         ];
     }
 }

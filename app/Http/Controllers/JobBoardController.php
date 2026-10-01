@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Candidates\CreateCandidateApplication;
 use App\Enums\EmploymentType;
 use App\Enums\JobStatus;
 use App\Enums\WorkMode;
 use App\Http\Requests\JobApplicationStoreRequest;
-use App\Jobs\RateCandidateApplication;
 use App\Models\JobPosting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,28 +60,18 @@ class JobBoardController extends Controller
         ]);
     }
 
-    public function apply(JobApplicationStoreRequest $request, JobPosting $jobPosting): RedirectResponse
-    {
+    public function apply(
+        JobApplicationStoreRequest $request,
+        JobPosting $jobPosting,
+        CreateCandidateApplication $createCandidateApplication,
+    ): RedirectResponse {
         abort_unless($jobPosting->status === JobStatus::Published, 404);
 
-        $resume = $request->file('resume');
-        $extension = $resume->extension() ?: $resume->getClientOriginalExtension();
-
-        $path = $resume->storeAs(
-            "resumes/{$jobPosting->id}",
-            Str::uuid().".{$extension}",
-            'local',
+        $createCandidateApplication->handle(
+            $jobPosting,
+            $request->safe()->only(['name', 'email', 'phone', 'cover_note']),
+            $request->file('resume'),
         );
-
-        $application = $jobPosting->applications()->create([
-            'name' => $request->validated('name'),
-            'email' => $request->validated('email'),
-            'phone' => $request->validated('phone'),
-            'resume_path' => $path,
-            'cover_note' => $request->validated('cover_note'),
-        ]);
-
-        RateCandidateApplication::dispatch($application);
 
         return back()->with('success', "Thanks, we've received your application.");
     }

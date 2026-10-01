@@ -26,6 +26,10 @@ class RateCandidateApplication implements ShouldQueue
 
     public function handle(): void
     {
+        if ($this->jobApplication->resume_path === null) {
+            return;
+        }
+
         $this->jobApplication->update(['ai_status' => AiRatingStatus::Processing]);
 
         Log::info('Rating candidate application', [
