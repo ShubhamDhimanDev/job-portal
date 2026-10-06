@@ -4,8 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Candidates\AttachCandidateResume;
 use App\Actions\Candidates\CreateCandidateApplication;
+use App\Actions\Candidates\DeleteCandidateApplications;
+use App\Actions\Candidates\FindDuplicateCandidates;
 use App\Concerns\FiltersCandidates;
+use App\Concerns\ValidatesCandidateProfile;
 use App\Enums\ApplicationStatus;
+use App\Enums\Gender;
+use App\Enums\InterviewType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminCandidateStoreRequest;
 use App\Jobs\RateCandidateApplication;
@@ -22,12 +27,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class JobApplicationController extends Controller
 {
-    use FiltersCandidates;
+    use FiltersCandidates, ValidatesCandidateProfile;
 
-    public function index(Request $request): Response
+    /**
+     * Candidate fields the AI rating reads; changing one re-runs the rating.
+     */
+    private const RATING_FIELDS = [
+        'total_experience',
+        'relevant_experience',
+        'current_designation',
+        'current_company',
+        'current_ctc',
+        'expected_ctc',
+        'notice_period',
+    ];
+
+    public function index(Request $request, FindDuplicateCandidates $findDuplicateCandidates): Response
     {
-        /** @var array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null} $filters */
-        $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search']);
+        /** @var array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null, duplicates?: string|null} $filters */
+        $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search', 'duplicates']);
         $sort = $request->string('sort')->toString();
 
         $query = $this->applyCandidateFilters(
@@ -35,9 +53,11 @@ class JobApplicationController extends Controller
             $filters
         );
 
+        $showingDuplicates = filter_var($filters['duplicates'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         $candidates = ($sort === 'ai_score'
             ? $query->orderByRaw('ai_score IS NULL')->orderByDesc('ai_score')
-            : $query->orderByDesc('created_at')
+            : ($showingDuplicates ? $query->orderBy('email') : $query->orderByDesc('created_at'))
         )
             ->orderByDesc('id')
             ->paginate(20)
@@ -47,6 +67,19 @@ class JobApplicationController extends Controller
                 'name' => $application->name,
                 'email' => $application->email,
                 'phone' => $application->phone,
+                'gender' => $application->gender?->value,
+                'date_of_birth' => $application->date_of_birth?->format('Y-m-d'),
+                'total_experience' => $application->total_experience,
+                'relevant_experience' => $application->relevant_experience,
+                'current_company' => $application->current_company,
+                'industry_type' => $application->industry_type,
+                'current_designation' => $application->current_designation,
+                'current_location' => $application->current_location,
+                'current_ctc' => $application->current_ctc,
+                'expected_ctc' => $application->expected_ctc,
+                'notice_period' => $application->notice_period,
+                'interview_type' => $application->interview_type?->value,
+                'interview_type_label' => $application->interview_type?->label(),
                 'status' => $application->status->value,
                 'status_label' => $application->status->label(),
                 'admin_notes' => $application->admin_notes,
@@ -79,12 +112,16 @@ class JobApplicationController extends Controller
                     'label' => $status->label(),
                 ])
                 ->values(),
+            'genders' => $this->enumOptions(Gender::cases()),
+            'interviewTypes' => $this->enumOptions(InterviewType::cases()),
+            'duplicateCount' => count($findDuplicateCandidates->redundantIds()),
             'filters' => [
                 'job_posting_id' => $filters['job_posting_id'] ?? null,
                 'status' => $filters['status'] ?? null,
                 'date_from' => $filters['date_from'] ?? null,
                 'date_to' => $filters['date_to'] ?? null,
                 'search' => $filters['search'] ?? null,
+                'duplicates' => $showingDuplicates ? '1' : null,
                 'sort' => $sort !== '' ? $sort : null,
             ],
             'flash' => [
@@ -100,6 +137,8 @@ class JobApplicationController extends Controller
             'jobPostings' => JobPosting::query()
                 ->orderBy('title')
                 ->get(['id', 'title']),
+            'genders' => $this->enumOptions(Gender::cases()),
+            'interviewTypes' => $this->enumOptions(InterviewType::cases()),
         ]);
     }
 
@@ -109,7 +148,7 @@ class JobApplicationController extends Controller
     ): RedirectResponse {
         $createCandidateApplication->handle(
             JobPosting::query()->findOrFail($request->validated('job_posting_id')),
-            $request->safe()->only(['name', 'email', 'phone', 'cover_note']),
+            $request->safe()->only(['name', 'email', 'phone', 'cover_note', ...$this->candidateProfileFields()]),
             $request->file('resume'),
         );
 
@@ -147,13 +186,14 @@ class JobApplicationController extends Controller
             ],
             'phone' => ['sometimes', 'required', 'string', 'max:50'],
             'job_posting_id' => ['sometimes', 'required', 'integer', Rule::exists('job_postings', 'id')],
+            ...$this->candidateProfileRules(),
         ], [
             'email.unique' => 'This email is already added to the selected job.',
         ]);
 
         $jobApplication->update($validated);
 
-        if ($jobApplication->wasChanged('job_posting_id') && $jobApplication->resume_path !== null) {
+        if ($jobApplication->wasChanged(['job_posting_id', ...self::RATING_FIELDS]) && $jobApplication->resume_path !== null) {
             RateCandidateApplication::dispatch($jobApplication);
         }
 
@@ -187,5 +227,37 @@ class JobApplicationController extends Controller
         $downloadName = Str::slug($jobApplication->name).($extension !== '' ? '.'.$extension : '');
 
         return Storage::disk('local')->download($jobApplication->resume_path, $downloadName);
+    }
+
+    public function destroy(JobApplication $jobApplication, DeleteCandidateApplications $deleteCandidateApplications): RedirectResponse
+    {
+        $deleteCandidateApplications->handle([$jobApplication->id]);
+
+        return back()->with('success', 'Candidate deleted.');
+    }
+
+    public function destroyDuplicates(
+        FindDuplicateCandidates $findDuplicateCandidates,
+        DeleteCandidateApplications $deleteCandidateApplications,
+    ): RedirectResponse {
+        $deleted = $deleteCandidateApplications->handle($findDuplicateCandidates->redundantIds());
+
+        if ($deleted === 0) {
+            return back()->with('success', 'No duplicate candidates found.');
+        }
+
+        return back()->with('success', "Deleted {$deleted} duplicate ".Str::plural('candidate', $deleted).', keeping the oldest of each.');
+    }
+
+    /**
+     * @param  array<int, Gender|InterviewType>  $cases
+     * @return array<int, array{value: string, label: string}>
+     */
+    private function enumOptions(array $cases): array
+    {
+        return array_map(
+            fn (Gender|InterviewType $case): array => ['value' => $case->value, 'label' => $case->label()],
+            $cases,
+        );
     }
 }

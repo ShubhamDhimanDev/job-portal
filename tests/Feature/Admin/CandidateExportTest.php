@@ -52,6 +52,18 @@ test('download returns an xlsx file with the expected headings', function () {
         'Status',
         'Applied Date',
         'Resume Filename',
+        'Gender',
+        'Date of Birth',
+        'Total Experience (Years)',
+        'Relevant Experience (Years)',
+        'Current Company',
+        'Industry Type',
+        'Current Designation',
+        'Current Location',
+        'Current CTC',
+        'Expected CTC',
+        'Notice Period',
+        'Interview Type',
     ]);
     expect($rows)->toHaveCount(3); // heading + 2 candidates
 });

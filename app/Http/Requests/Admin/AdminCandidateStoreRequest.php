@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Concerns\ValidatesCandidateProfile;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class AdminCandidateStoreRequest extends FormRequest
 {
+    use ValidatesCandidateProfile;
+
     public function authorize(): bool
     {
         return true;
@@ -19,6 +22,7 @@ class AdminCandidateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
+            ...$this->candidateProfileRules(),
             'job_posting_id' => ['required', 'integer', Rule::exists('job_postings', 'id')],
             'name' => ['required', 'string', 'max:255'],
             'email' => [

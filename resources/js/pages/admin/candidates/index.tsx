@@ -1,11 +1,13 @@
 import { Link, router, useForm } from '@inertiajs/react';
 import {
+    Copy,
     Download,
     Mail,
     Pencil,
     Plus,
     RefreshCw,
     Search,
+    Trash2,
     Upload,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -18,12 +20,22 @@ import {
 import { create as importCandidates } from '@/actions/App/Http/Controllers/Admin/CandidateImportController';
 import {
     create,
+    destroy,
+    destroyDuplicates,
     index,
     rate,
     resume,
     update,
     uploadResume as uploadResumeAction,
 } from '@/actions/App/Http/Controllers/Admin/JobApplicationController';
+import {
+    CandidateProfileFields,
+    emptyCandidateProfile,
+} from '@/components/candidate-profile-fields';
+import type {
+    CandidateProfileValues,
+    EnumOption,
+} from '@/components/candidate-profile-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,6 +99,19 @@ interface CandidateRow {
     name: string;
     email: string;
     phone: string;
+    gender: string | null;
+    date_of_birth: string | null;
+    total_experience: number | null;
+    relevant_experience: number | null;
+    current_company: string | null;
+    industry_type: string | null;
+    current_designation: string | null;
+    current_location: string | null;
+    current_ctc: number | null;
+    expected_ctc: number | null;
+    notice_period: string | null;
+    interview_type: string | null;
+    interview_type_label: string | null;
     status: string;
     status_label: string;
     admin_notes: string | null;
@@ -131,6 +156,7 @@ interface CandidateFilters {
     date_from: string | null;
     date_to: string | null;
     search: string | null;
+    duplicates: string | null;
     sort: string | null;
 }
 
@@ -138,6 +164,9 @@ interface CandidatesIndexProps {
     candidates: PaginatedCandidates;
     jobPostings: JobPostingOption[];
     statuses: StatusOption[];
+    genders: EnumOption[];
+    interviewTypes: EnumOption[];
+    duplicateCount: number;
     filters: CandidateFilters;
     flash: {
         success: string | null;
@@ -183,6 +212,9 @@ export default function CandidatesIndex({
     candidates,
     jobPostings,
     statuses,
+    genders,
+    interviewTypes,
+    duplicateCount,
     filters,
     flash,
 }: CandidatesIndexProps) {
@@ -194,6 +226,7 @@ export default function CandidatesIndex({
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
     const [search, setSearch] = useState(filters.search ?? '');
     const [sort, setSort] = useState(filters.sort ?? 'newest');
+    const showingDuplicates = filters.duplicates === '1';
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     const [reratingId, setReratingId] = useState<number | null>(null);
     const [aiDetailCandidate, setAiDetailCandidate] =
@@ -224,6 +257,7 @@ export default function CandidatesIndex({
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
                 search: search || undefined,
+                duplicates: showingDuplicates ? 1 : undefined,
                 sort: sort === 'newest' ? undefined : sort,
             },
             { preserveState: true, preserveScroll: true, replace: true },
@@ -242,6 +276,36 @@ export default function CandidatesIndex({
             {},
             { preserveState: true, preserveScroll: true, replace: true },
         );
+    }
+
+    function toggleDuplicates() {
+        router.get(index.url(), showingDuplicates ? {} : { duplicates: 1 }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    function deleteCandidate(candidate: CandidateRow) {
+        if (
+            !window.confirm(`Delete ${candidate.name}? This cannot be undone.`)
+        ) {
+            return;
+        }
+
+        router.delete(destroy.url(candidate.id), { preserveScroll: true });
+    }
+
+    function deleteDuplicates() {
+        if (
+            !window.confirm(
+                `Delete ${duplicateCount} duplicate candidate(s)? The oldest record in each group of matching email or phone is kept. This cannot be undone.`,
+            )
+        ) {
+            return;
+        }
+
+        router.delete(destroyDuplicates.url(), { preserveScroll: true });
     }
 
     function updateStatus(candidateId: number, newStatus: string) {
@@ -418,7 +482,7 @@ export default function CandidatesIndex({
                                 </Select>
                             </div>
 
-                            <div className="flex items-end gap-2 lg:col-span-7">
+                            <div className="flex flex-wrap items-end gap-2 lg:col-span-7">
                                 <Button type="submit">Apply filters</Button>
                                 <Button
                                     type="button"
@@ -428,13 +492,37 @@ export default function CandidatesIndex({
                                     Reset
                                 </Button>
 
-                                <div className="ml-auto flex gap-2">
+                                <div className="ml-auto flex flex-wrap gap-2">
                                     <Button asChild>
                                         <Link href={create.url()}>
                                             <Plus />
                                             Add candidate
                                         </Link>
                                     </Button>
+                                    <Button
+                                        type="button"
+                                        variant={
+                                            showingDuplicates
+                                                ? 'secondary'
+                                                : 'outline'
+                                        }
+                                        onClick={toggleDuplicates}
+                                    >
+                                        <Copy />
+                                        {showingDuplicates
+                                            ? 'Show all'
+                                            : 'Find duplicates'}
+                                    </Button>
+                                    {duplicateCount > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={deleteDuplicates}
+                                        >
+                                            <Trash2 />
+                                            Delete duplicates ({duplicateCount})
+                                        </Button>
+                                    )}
                                     <Button variant="outline" asChild>
                                         <Link href={importCandidates.url()}>
                                             <Upload />
@@ -512,20 +600,39 @@ export default function CandidatesIndex({
                                                 <div className="text-xs text-muted-foreground">
                                                     {candidate.phone}
                                                 </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="mt-1 h-6 px-1.5 text-xs text-muted-foreground"
-                                                    onClick={() =>
-                                                        setEditCandidate(
-                                                            candidate,
-                                                        )
-                                                    }
-                                                >
-                                                    <Pencil className="size-3" />
-                                                    Edit
-                                                </Button>
+                                                <CandidateProfileSummary
+                                                    candidate={candidate}
+                                                />
+                                                <div className="mt-1 flex gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-1.5 text-xs text-muted-foreground"
+                                                        onClick={() =>
+                                                            setEditCandidate(
+                                                                candidate,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Pencil className="size-3" />
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 px-1.5 text-xs text-destructive hover:text-destructive"
+                                                        onClick={() =>
+                                                            deleteCandidate(
+                                                                candidate,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="size-3" />
+                                                        Delete
+                                                    </Button>
+                                                </div>
                                             </td>
                                             <td className="py-3 pr-3 align-top">
                                                 {candidate.job_posting.title}
@@ -769,6 +876,8 @@ export default function CandidatesIndex({
             <EditCandidateDialog
                 candidate={editCandidate}
                 jobPostings={jobPostings}
+                genders={genders}
+                interviewTypes={interviewTypes}
                 onOpenChange={(open) => {
                     if (!open) {
                         setEditCandidate(null);
@@ -785,6 +894,32 @@ export default function CandidatesIndex({
                 }}
             />
         </AdminLayout>
+    );
+}
+
+function CandidateProfileSummary({ candidate }: { candidate: CandidateRow }) {
+    const details = [
+        candidate.current_designation,
+        candidate.current_company,
+        candidate.current_location,
+        candidate.total_experience !== null
+            ? `${candidate.total_experience} yrs exp`
+            : null,
+        candidate.expected_ctc !== null
+            ? `Expected CTC ${candidate.expected_ctc}`
+            : null,
+        candidate.notice_period ? `Notice ${candidate.notice_period}` : null,
+        candidate.interview_type_label,
+    ].filter((detail): detail is string => Boolean(detail));
+
+    if (details.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mt-1 max-w-64 text-xs text-muted-foreground">
+            {details.join(' · ')}
+        </div>
     );
 }
 
@@ -830,15 +965,27 @@ function ResumeUploadButton({ label, onSelect }: ResumeUploadButtonProps) {
 interface EditCandidateDialogProps {
     candidate: CandidateRow | null;
     jobPostings: JobPostingOption[];
+    genders: EnumOption[];
+    interviewTypes: EnumOption[];
     onOpenChange: (open: boolean) => void;
 }
 
 function EditCandidateDialog({
     candidate,
     jobPostings,
+    genders,
+    interviewTypes,
     onOpenChange,
 }: EditCandidateDialogProps) {
-    const { data, setData, patch, processing, errors, clearErrors } = useForm({
+    const { data, setData, patch, processing, errors, clearErrors } = useForm<
+        CandidateProfileValues & {
+            name: string;
+            email: string;
+            phone: string;
+            job_posting_id: string;
+        }
+    >({
+        ...emptyCandidateProfile,
         name: '',
         email: '',
         phone: '',
@@ -852,6 +999,19 @@ function EditCandidateDialog({
                 email: candidate.email,
                 phone: candidate.phone,
                 job_posting_id: String(candidate.job_posting.id),
+                gender: candidate.gender ?? '',
+                date_of_birth: candidate.date_of_birth ?? '',
+                total_experience: candidate.total_experience?.toString() ?? '',
+                relevant_experience:
+                    candidate.relevant_experience?.toString() ?? '',
+                current_company: candidate.current_company ?? '',
+                industry_type: candidate.industry_type ?? '',
+                current_designation: candidate.current_designation ?? '',
+                current_location: candidate.current_location ?? '',
+                current_ctc: candidate.current_ctc?.toString() ?? '',
+                expected_ctc: candidate.expected_ctc?.toString() ?? '',
+                notice_period: candidate.notice_period ?? '',
+                interview_type: candidate.interview_type ?? '',
             });
             clearErrors();
         }
@@ -873,7 +1033,7 @@ function EditCandidateDialog({
 
     return (
         <Dialog open={candidate !== null} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Edit candidate</DialogTitle>
                     <DialogDescription>
@@ -958,6 +1118,17 @@ function EditCandidateDialog({
                                 {errors.job_posting_id}
                             </p>
                         )}
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <CandidateProfileFields
+                            idPrefix="edit"
+                            values={data}
+                            errors={errors}
+                            genders={genders}
+                            interviewTypes={interviewTypes}
+                            onChange={(field, value) => setData(field, value)}
+                        />
                     </div>
 
                     <DialogFooter>

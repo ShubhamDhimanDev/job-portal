@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Actions\Candidates\FindDuplicateCandidates;
 use App\Models\JobApplication;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -12,7 +13,7 @@ trait FiltersCandidates
      * used by both the admin candidates list and the Excel export.
      *
      * @param  Builder<JobApplication>  $query
-     * @param  array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null}  $filters
+     * @param  array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null, duplicates?: string|bool|null}  $filters
      * @return Builder<JobApplication>
      */
     protected function applyCandidateFilters(Builder $query, array $filters): Builder
@@ -33,6 +34,10 @@ trait FiltersCandidates
             ->when(
                 filled($filters['date_to'] ?? null),
                 fn (Builder $q): Builder => $q->whereDate('created_at', '<=', $filters['date_to'])
+            )
+            ->when(
+                filter_var($filters['duplicates'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                fn (Builder $q): Builder => $q->whereIn('id', app(FindDuplicateCandidates::class)->duplicateIds())
             )
             ->when(
                 filled($filters['search'] ?? null),
