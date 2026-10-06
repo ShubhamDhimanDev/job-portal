@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\CandidateImportStatus;
+use App\Enums\Gender;
+use App\Enums\InterviewType;
 use App\Jobs\ProcessCandidateImport;
 use App\Jobs\RateCandidateApplication;
 use App\Models\CandidateImport;
@@ -235,4 +237,56 @@ test('admin can download the issues csv of an import', function () {
     expect($response->streamedContent())
         ->toContain('row,type,name,email,reason')
         ->toContain('3,failed,Jane,jane@example.com,"Job not found"');
+});
+
+test('import reads the optional profile columns and ignores invalid ones with a warning', function () {
+    Storage::fake('local');
+    Bus::fake([RateCandidateApplication::class]);
+
+    JobPosting::factory()->create(['slug' => 'laravel-dev']);
+
+    $header = 'name,email,phone,job,resume_filename,gender,date_of_birth,total_experience,relevant_experience,current_company,industry_type,current_designation,current_location,current_ctc,expected_ctc,notice_period,interview_type';
+    $csv = implode("\n", [
+        $header,
+        'Jane Doe,jane@example.com,111,laravel-dev,,female,1995-04-12,6.5,4,Acme,IT,Developer,Pune,1200000,1500000,30 days,Face to Face',
+        'Bad Values,bad@example.com,222,laravel-dev,,robot,not-a-date,lots,,,,,,,,,phone',
+    ]);
+
+    $this->actingAs(User::factory()->create())->post('/admin/candidates/import', [
+        'spreadsheet' => UploadedFile::fake()->createWithContent('candidates.csv', $csv),
+        'archive' => makeResumeZip(['x.pdf' => 'pdf']),
+    ])->assertSessionHasNoErrors();
+
+    $import = CandidateImport::query()->firstOrFail()->refresh();
+    expect($import->created_count)->toBe(2);
+
+    $jane = JobApplication::query()->where('email', 'jane@example.com')->firstOrFail();
+    expect($jane)
+        ->gender->toBe(Gender::Female)
+        ->interview_type->toBe(InterviewType::FaceToFace)
+        ->date_of_birth->toDateString()->toBe('1995-04-12')
+        ->total_experience->toBe(6.5)
+        ->current_company->toBe('Acme')
+        ->expected_ctc->toBe(1500000.0)
+        ->notice_period->toBe('30 days');
+
+    $bad = JobApplication::query()->where('email', 'bad@example.com')->firstOrFail();
+    expect($bad->gender)->toBeNull()
+        ->and($bad->total_experience)->toBeNull()
+        ->and($bad->interview_type)->toBeNull();
+
+    $ignored = collect($import->issues)->first(fn (array $issue): bool => str_starts_with($issue['reason'], 'Ignored invalid'));
+
+    expect($ignored['reason'])->toContain('gender', 'date_of_birth', 'total_experience', 'interview_type');
+});
+
+test('the import template includes the profile columns with dropdowns', function () {
+    $response = $this->actingAs(User::factory()->create())->get('/admin/candidates/import/template');
+
+    $candidates = IOFactory::load($response->baseResponse->getFile()->getPathname())->getSheetByName('Candidates');
+
+    expect($candidates->getCell('F1')->getValue())->toBe('gender')
+        ->and($candidates->getCell('Q1')->getValue())->toBe('interview_type')
+        ->and($candidates->getCell('F2')->getDataValidation()->getFormula1())->toBe('"Male,Female,Other"')
+        ->and($candidates->getCell('Q2')->getDataValidation()->getFormula1())->toBe('"Face to Face,Virtual"');
 });

@@ -16,7 +16,7 @@ class CreateCandidateApplication
      * Create the application, storing the resume when there is one. The AI
      * rating is only queued for candidates that have a resume to rate.
      *
-     * @param  array{name: string, email: string, phone: string, cover_note?: string|null}  $attributes
+     * @param  array<string, mixed>  $attributes
      */
     public function handle(
         JobPosting $jobPosting,
