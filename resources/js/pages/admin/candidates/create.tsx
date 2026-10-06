@@ -5,6 +5,14 @@ import {
     index,
     store,
 } from '@/actions/App/Http/Controllers/Admin/JobApplicationController';
+import {
+    CandidateProfileFields,
+    emptyCandidateProfile,
+} from '@/components/candidate-profile-fields';
+import type {
+    CandidateProfileValues,
+    EnumOption,
+} from '@/components/candidate-profile-fields';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +34,8 @@ interface JobPostingOption {
 
 interface CreateCandidateProps {
     jobPostings: JobPostingOption[];
+    genders: EnumOption[];
+    interviewTypes: EnumOption[];
 }
 
 const textareaClassName = cn(
@@ -34,15 +44,22 @@ const textareaClassName = cn(
     'disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm',
 );
 
-export default function CreateCandidate({ jobPostings }: CreateCandidateProps) {
-    const { data, setData, post, processing, errors } = useForm<{
-        job_posting_id: string;
-        name: string;
-        email: string;
-        phone: string;
-        cover_note: string;
-        resume: File | null;
-    }>({
+export default function CreateCandidate({
+    jobPostings,
+    genders,
+    interviewTypes,
+}: CreateCandidateProps) {
+    const { data, setData, post, processing, errors } = useForm<
+        CandidateProfileValues & {
+            job_posting_id: string;
+            name: string;
+            email: string;
+            phone: string;
+            cover_note: string;
+            resume: File | null;
+        }
+    >({
+        ...emptyCandidateProfile,
         job_posting_id: '',
         name: '',
         email: '',
@@ -58,7 +75,7 @@ export default function CreateCandidate({ jobPostings }: CreateCandidateProps) {
 
     return (
         <AdminLayout title="Add Candidate">
-            <form onSubmit={submit} className="mx-auto max-w-2xl space-y-6">
+            <form onSubmit={submit} className="mx-auto max-w-3xl space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle>Candidate details</CardTitle>
@@ -174,6 +191,15 @@ export default function CreateCandidate({ jobPostings }: CreateCandidateProps) {
                                 </p>
                             )}
                         </div>
+
+                        <CandidateProfileFields
+                            idPrefix="create"
+                            values={data}
+                            errors={errors}
+                            genders={genders}
+                            interviewTypes={interviewTypes}
+                            onChange={(field, value) => setData(field, value)}
+                        />
 
                         <div className="space-y-2 sm:col-span-2">
                             <Label htmlFor="cover_note">Notes (optional)</Label>

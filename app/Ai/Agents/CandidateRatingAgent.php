@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Models\JobApplication;
 use App\Models\JobPosting;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -14,7 +15,10 @@ class CandidateRatingAgent implements Agent, HasStructuredOutput
 {
     use Promptable;
 
-    public function __construct(public JobPosting $jobPosting) {}
+    public function __construct(
+        public JobPosting $jobPosting,
+        public ?JobApplication $jobApplication = null,
+    ) {}
 
     public function instructions(): Stringable|string
     {
@@ -35,6 +39,7 @@ class CandidateRatingAgent implements Agent, HasStructuredOutput
             2. Rate how well this specific candidate fits the job below, from 1 (poor fit) to
                10 (excellent fit), with concrete reasoning grounded in the resume and the job's
                actual requirements. Do not assume information that isn't in the resume.
+            {$this->recruiterDetailsInstructions()}
 
             Job: {$job->title}
             Department: {$job->department}
@@ -52,6 +57,48 @@ class CandidateRatingAgent implements Agent, HasStructuredOutput
             Requirements:
             {$job->requirements}
             INSTRUCTIONS;
+    }
+
+    /**
+     * Recruiter-entered details about the candidate, when any were provided.
+     * Gender, date of birth and similar protected attributes are deliberately
+     * never sent to the model.
+     */
+    private function recruiterDetailsInstructions(): string
+    {
+        $candidate = $this->jobApplication;
+
+        $details = array_filter([
+            'Total experience' => $candidate?->total_experience !== null ? "{$candidate->total_experience} years" : null,
+            'Relevant experience' => $candidate?->relevant_experience !== null ? "{$candidate->relevant_experience} years" : null,
+            'Current designation' => $candidate?->current_designation,
+            'Current company' => $candidate?->current_company,
+            'Current CTC' => $candidate?->current_ctc,
+            'Expected CTC' => $candidate?->expected_ctc,
+            'Notice period' => $candidate?->notice_period,
+        ], fn (mixed $value): bool => $value !== null && $value !== '');
+
+        if ($details === []) {
+            return '';
+        }
+
+        $lines = implode(PHP_EOL, array_map(
+            fn (string $label, mixed $value): string => "- {$label}: {$value}",
+            array_keys($details),
+            $details,
+        ));
+
+        return <<<DETAILS
+
+            The recruiter also entered these details about the candidate:
+            {$lines}
+
+            Treat the recruiter's experience figures as more reliable than your own estimate from
+            the resume. If total or relevant experience is clearly below or above what the job's
+            experience level requires, let that move the score and list it under gaps or strengths.
+            If expected CTC is well above the job's salary range, or the notice period is long,
+            mention it in the reasoning and gaps but do not change the score because of it.
+            DETAILS;
     }
 
     /**

@@ -15,7 +15,7 @@ class CandidatesExport implements FromQuery, WithHeadings, WithMapping
     use Exportable, FiltersCandidates;
 
     /**
-     * @param  array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null}  $filters
+     * @param  array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null, duplicates?: string|bool|null}  $filters
      */
     public function __construct(private readonly array $filters = []) {}
 
@@ -46,12 +46,24 @@ class CandidatesExport implements FromQuery, WithHeadings, WithMapping
             'Status',
             'Applied Date',
             'Resume Filename',
+            'Gender',
+            'Date of Birth',
+            'Total Experience (Years)',
+            'Relevant Experience (Years)',
+            'Current Company',
+            'Industry Type',
+            'Current Designation',
+            'Current Location',
+            'Current CTC',
+            'Expected CTC',
+            'Notice Period',
+            'Interview Type',
         ];
     }
 
     /**
      * @param  JobApplication  $row
-     * @return array<int, string|null>
+     * @return array<int, string|float|null>
      */
     public function map(mixed $row): array
     {
@@ -64,6 +76,18 @@ class CandidatesExport implements FromQuery, WithHeadings, WithMapping
             $row->status->label(),
             $row->created_at?->format('Y-m-d H:i'),
             $row->resume_path !== null ? basename($row->resume_path) : null,
+            $row->gender?->label(),
+            $row->date_of_birth?->format('Y-m-d'),
+            $row->total_experience,
+            $row->relevant_experience,
+            $row->current_company,
+            $row->industry_type,
+            $row->current_designation,
+            $row->current_location,
+            $row->current_ctc,
+            $row->expected_ctc,
+            $row->notice_period,
+            $row->interview_type?->label(),
         ];
     }
 }

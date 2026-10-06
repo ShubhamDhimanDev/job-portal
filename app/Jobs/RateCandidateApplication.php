@@ -38,7 +38,7 @@ class RateCandidateApplication implements ShouldQueue
         ]);
 
         try {
-            $agent = new CandidateRatingAgent($this->jobApplication->jobPosting);
+            $agent = new CandidateRatingAgent($this->jobApplication->jobPosting, $this->jobApplication);
             $isPdf = strtolower(pathinfo($this->jobApplication->resume_path, PATHINFO_EXTENSION)) === 'pdf';
 
             $response = $isPdf

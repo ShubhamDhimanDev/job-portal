@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\AiRatingStatus;
 use App\Enums\ApplicationStatus;
+use App\Enums\Gender;
+use App\Enums\InterviewType;
 use Database\Factories\JobApplicationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +17,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'name',
     'email',
     'phone',
+    'gender',
+    'date_of_birth',
+    'total_experience',
+    'relevant_experience',
+    'current_company',
+    'industry_type',
+    'current_designation',
+    'current_location',
+    'current_ctc',
+    'expected_ctc',
+    'notice_period',
+    'interview_type',
     'resume_path',
     'cover_note',
     'status',
@@ -41,6 +55,13 @@ class JobApplication extends Model
         return [
             'status' => ApplicationStatus::class,
             'ai_status' => AiRatingStatus::class,
+            'gender' => Gender::class,
+            'interview_type' => InterviewType::class,
+            'date_of_birth' => 'date',
+            'total_experience' => 'float',
+            'relevant_experience' => 'float',
+            'current_ctc' => 'float',
+            'expected_ctc' => 'float',
             'ai_strengths' => 'array',
             'ai_gaps' => 'array',
             'ai_profile' => 'array',
