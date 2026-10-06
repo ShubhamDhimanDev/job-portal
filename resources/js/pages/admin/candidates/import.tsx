@@ -120,6 +120,15 @@ export default function ImportCandidates({
                                     <span className="font-medium text-foreground">
                                         name, email, phone, job, resume_filename
                                     </span>
+                                    , plus the optional profile columns{' '}
+                                    <span className="font-medium text-foreground">
+                                        gender, date_of_birth, total_experience,
+                                        relevant_experience, current_company,
+                                        industry_type, current_designation,
+                                        current_location, current_ctc,
+                                        expected_ctc, notice_period,
+                                        interview_type
+                                    </span>
                                     . <span className="font-medium">job</span>{' '}
                                     is the job's slug or ID, and{' '}
                                     <span className="font-medium">
