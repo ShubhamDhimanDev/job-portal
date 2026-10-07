@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Candidates\ParseNoticePeriodDays;
 use App\Enums\AiRatingStatus;
 use App\Enums\ApplicationStatus;
 use App\Enums\Gender;
@@ -65,6 +66,7 @@ class JobApplication extends Model
             'relevant_experience' => 'float',
             'current_ctc' => 'float',
             'expected_ctc' => 'float',
+            'notice_period_days' => 'integer',
             'ai_strengths' => 'array',
             'ai_gaps' => 'array',
             'ai_profile' => 'array',
@@ -78,5 +80,18 @@ class JobApplication extends Model
     public function jobPosting(): BelongsTo
     {
         return $this->belongsTo(JobPosting::class);
+    }
+
+    /**
+     * Keep the numeric notice period used for filtering in step with the
+     * free-text value recruiters type.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (JobApplication $application): void {
+            if ($application->isDirty('notice_period')) {
+                $application->notice_period_days = app(ParseNoticePeriodDays::class)->handle($application->notice_period);
+            }
+        });
     }
 }

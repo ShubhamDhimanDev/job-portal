@@ -16,7 +16,7 @@ class CandidateExportController extends Controller
 {
     public function download(Request $request): BinaryFileResponse
     {
-        $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search']);
+        $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search', 'experience_min', 'experience_max', 'salary_basis', 'salary_min', 'salary_max', 'notice_period']);
 
         return Excel::download(
             new CandidatesExport($filters),
@@ -26,7 +26,7 @@ class CandidateExportController extends Controller
 
     public function email(EmailCandidatesExportRequest $request): RedirectResponse
     {
-        $filters = $request->safe()->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search']);
+        $filters = $request->safe()->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search', 'experience_min', 'experience_max', 'salary_basis', 'salary_min', 'salary_max', 'notice_period']);
 
         $bytes = Excel::raw(new CandidatesExport($filters), \Maatwebsite\Excel\Excel::XLSX);
 
