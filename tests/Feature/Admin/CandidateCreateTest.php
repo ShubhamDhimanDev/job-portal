@@ -39,7 +39,7 @@ test('admin can add a candidate to a job with a resume', function () {
         'job_posting_id' => $job->id,
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
-        'phone' => '9999999999',
+        'phone' => '9876543210',
         'resume' => UploadedFile::fake()->create('resume.pdf', 200, 'application/pdf'),
     ]);
 
@@ -86,7 +86,7 @@ test('the same email cannot be added twice to a job but can be added to another'
         'job_posting_id' => $target->id,
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
-        'phone' => '9999999999',
+        'phone' => '9876543210',
         'resume' => UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf'),
     ];
 
@@ -113,12 +113,17 @@ test('candidate phone numbers must look like real phone numbers', function (stri
 
     $valid ? $response->assertSessionHasNoErrors() : $response->assertSessionHasErrors('phone');
 })->with([
-    'plain digits' => ['9999999999', true],
-    'international format' => ['+91 98765-43210', true],
-    'brackets' => ['(022) 2345 6789', true],
+    'plain digits' => ['9876543210', true],
+    'country code' => ['+91 98765-43210', true],
+    'country code no plus' => ['919876543210', true],
+    'trunk zero' => ['09876543210', true],
+    'spaced' => ['98765 43210', true],
+    'starts with 5' => ['5876543210', false],
+    'landline style' => ['(022) 2345 6789', false],
     'letters' => ['abcdefghij', false],
-    'too short' => ['12345', false],
-    'too long' => ['1234567890123456', false],
+    'too short' => ['987654321', false],
+    'too long' => ['98765432101', false],
+    'other country code' => ['+1 9876543210', false],
     'mixed junk' => ['98765abc43', false],
 ]);
 
@@ -127,7 +132,7 @@ test('candidate email must be a valid address', function (string $email) {
         'job_posting_id' => JobPosting::factory()->create()->id,
         'name' => 'Jane Doe',
         'email' => $email,
-        'phone' => '9999999999',
+        'phone' => '9876543210',
         'resume' => UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf'),
     ]);
 
