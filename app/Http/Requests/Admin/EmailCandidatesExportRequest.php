@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ApplicationStatus;
+use App\Enums\NoticePeriodFilter;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,12 @@ class EmailCandidatesExportRequest extends FormRequest
             'date_from' => ['sometimes', 'nullable', 'date'],
             'date_to' => ['sometimes', 'nullable', 'date', 'after_or_equal:date_from'],
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'experience_min' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'experience_max' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'salary_basis' => ['sometimes', 'nullable', Rule::in(['current', 'expected'])],
+            'salary_min' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'salary_max' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'notice_period' => ['sometimes', 'nullable', Rule::enum(NoticePeriodFilter::class)],
         ];
     }
 }

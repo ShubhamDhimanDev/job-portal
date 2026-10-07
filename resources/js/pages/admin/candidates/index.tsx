@@ -158,6 +158,12 @@ interface CandidateFilters {
     date_to: string | null;
     search: string | null;
     duplicates: string | null;
+    experience_min: string | null;
+    experience_max: string | null;
+    salary_basis: string | null;
+    salary_min: string | null;
+    salary_max: string | null;
+    notice_period: string | null;
     sort: string | null;
 }
 
@@ -167,6 +173,7 @@ interface CandidatesIndexProps {
     statuses: StatusOption[];
     genders: EnumOption[];
     interviewTypes: EnumOption[];
+    noticePeriods: EnumOption[];
     duplicateCount: number;
     filters: CandidateFilters;
     flash: {
@@ -215,6 +222,7 @@ export default function CandidatesIndex({
     statuses,
     genders,
     interviewTypes,
+    noticePeriods,
     duplicateCount,
     filters,
     flash,
@@ -226,6 +234,20 @@ export default function CandidatesIndex({
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
     const [search, setSearch] = useState(filters.search ?? '');
+    const [experienceMin, setExperienceMin] = useState(
+        filters.experience_min ?? '',
+    );
+    const [experienceMax, setExperienceMax] = useState(
+        filters.experience_max ?? '',
+    );
+    const [salaryBasis, setSalaryBasis] = useState(
+        filters.salary_basis ?? 'expected',
+    );
+    const [salaryMin, setSalaryMin] = useState(filters.salary_min ?? '');
+    const [salaryMax, setSalaryMax] = useState(filters.salary_max ?? '');
+    const [noticePeriod, setNoticePeriod] = useState(
+        filters.notice_period ?? 'all',
+    );
     const [sort, setSort] = useState(filters.sort ?? 'newest');
     const showingDuplicates = filters.duplicates === '1';
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -258,6 +280,14 @@ export default function CandidatesIndex({
                 date_from: dateFrom || undefined,
                 date_to: dateTo || undefined,
                 search: search || undefined,
+                experience_min: experienceMin || undefined,
+                experience_max: experienceMax || undefined,
+                salary_basis:
+                    salaryBasis === 'expected' ? undefined : salaryBasis,
+                salary_min: salaryMin || undefined,
+                salary_max: salaryMax || undefined,
+                notice_period:
+                    noticePeriod === 'all' ? undefined : noticePeriod,
                 duplicates: showingDuplicates ? 1 : undefined,
                 sort: sort === 'newest' ? undefined : sort,
             },
@@ -271,6 +301,12 @@ export default function CandidatesIndex({
         setDateFrom('');
         setDateTo('');
         setSearch('');
+        setExperienceMin('');
+        setExperienceMax('');
+        setSalaryBasis('expected');
+        setSalaryMin('');
+        setSalaryMax('');
+        setNoticePeriod('all');
         setSort('newest');
         router.get(
             index.url(),
@@ -354,6 +390,12 @@ export default function CandidatesIndex({
             date_from: filters.date_from ?? undefined,
             date_to: filters.date_to ?? undefined,
             search: filters.search ?? undefined,
+            experience_min: filters.experience_min ?? undefined,
+            experience_max: filters.experience_max ?? undefined,
+            salary_basis: filters.salary_basis ?? undefined,
+            salary_min: filters.salary_min ?? undefined,
+            salary_max: filters.salary_max ?? undefined,
+            notice_period: filters.notice_period ?? undefined,
         },
     });
 
@@ -479,6 +521,117 @@ export default function CandidatesIndex({
                                         <SelectItem value="ai_score">
                                             Best fit
                                         </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Experience from (yrs)
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    step="0.1"
+                                    placeholder="e.g. 2"
+                                    value={experienceMin}
+                                    onChange={(e) =>
+                                        setExperienceMin(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Experience to (yrs)
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    step="0.1"
+                                    placeholder="e.g. 5"
+                                    value={experienceMax}
+                                    onChange={(e) =>
+                                        setExperienceMax(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Salary basis
+                                </Label>
+                                <Select
+                                    value={salaryBasis}
+                                    onValueChange={setSalaryBasis}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="expected">
+                                            Expected CTC
+                                        </SelectItem>
+                                        <SelectItem value="current">
+                                            Current CTC
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Salary min
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    step="any"
+                                    value={salaryMin}
+                                    onChange={(e) =>
+                                        setSalaryMin(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Salary max
+                                </Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    step="any"
+                                    value={salaryMax}
+                                    onChange={(e) =>
+                                        setSalaryMax(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div className="lg:col-span-2">
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Notice period
+                                </Label>
+                                <Select
+                                    value={noticePeriod}
+                                    onValueChange={setNoticePeriod}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Any notice period" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            Any notice period
+                                        </SelectItem>
+                                        {noticePeriods.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1189,6 +1342,12 @@ function EmailExportDialog({
             date_from: filters.date_from ?? undefined,
             date_to: filters.date_to ?? undefined,
             search: filters.search ?? undefined,
+            experience_min: filters.experience_min ?? undefined,
+            experience_max: filters.experience_max ?? undefined,
+            salary_basis: filters.salary_basis ?? undefined,
+            salary_min: filters.salary_min ?? undefined,
+            salary_max: filters.salary_max ?? undefined,
+            notice_period: filters.notice_period ?? undefined,
         }));
 
         post(email.url(), {

@@ -11,6 +11,7 @@ use App\Concerns\ValidatesCandidateProfile;
 use App\Enums\ApplicationStatus;
 use App\Enums\Gender;
 use App\Enums\InterviewType;
+use App\Enums\NoticePeriodFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminCandidateStoreRequest;
 use App\Jobs\RateCandidateApplication;
@@ -44,8 +45,11 @@ class JobApplicationController extends Controller
 
     public function index(Request $request, FindDuplicateCandidates $findDuplicateCandidates): Response
     {
-        /** @var array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null, duplicates?: string|null} $filters */
-        $filters = $request->only(['job_posting_id', 'status', 'date_from', 'date_to', 'search', 'duplicates']);
+        /** @var array{job_posting_id?: int|string|null, status?: string|null, date_from?: string|null, date_to?: string|null, search?: string|null, duplicates?: string|null, experience_min?: string|null, experience_max?: string|null, salary_basis?: string|null, salary_min?: string|null, salary_max?: string|null, notice_period?: string|null} $filters */
+        $filters = $request->only([
+            'job_posting_id', 'status', 'date_from', 'date_to', 'search', 'duplicates',
+            'experience_min', 'experience_max', 'salary_basis', 'salary_min', 'salary_max', 'notice_period',
+        ]);
         $sort = $request->string('sort')->toString();
 
         $query = $this->applyCandidateFilters(
@@ -114,6 +118,7 @@ class JobApplicationController extends Controller
                 ->values(),
             'genders' => $this->enumOptions(Gender::cases()),
             'interviewTypes' => $this->enumOptions(InterviewType::cases()),
+            'noticePeriods' => $this->enumOptions(NoticePeriodFilter::cases()),
             'duplicateCount' => count($findDuplicateCandidates->redundantIds()),
             'filters' => [
                 'job_posting_id' => $filters['job_posting_id'] ?? null,
@@ -122,6 +127,12 @@ class JobApplicationController extends Controller
                 'date_to' => $filters['date_to'] ?? null,
                 'search' => $filters['search'] ?? null,
                 'duplicates' => $showingDuplicates ? '1' : null,
+                'experience_min' => $filters['experience_min'] ?? null,
+                'experience_max' => $filters['experience_max'] ?? null,
+                'salary_basis' => $filters['salary_basis'] ?? null,
+                'salary_min' => $filters['salary_min'] ?? null,
+                'salary_max' => $filters['salary_max'] ?? null,
+                'notice_period' => $filters['notice_period'] ?? null,
                 'sort' => $sort !== '' ? $sort : null,
             ],
             'flash' => [
@@ -251,13 +262,13 @@ class JobApplicationController extends Controller
     }
 
     /**
-     * @param  array<int, Gender|InterviewType>  $cases
+     * @param  array<int, Gender|InterviewType|NoticePeriodFilter>  $cases
      * @return array<int, array{value: string, label: string}>
      */
     private function enumOptions(array $cases): array
     {
         return array_map(
-            fn (Gender|InterviewType $case): array => ['value' => $case->value, 'label' => $case->label()],
+            fn (Gender|InterviewType|NoticePeriodFilter $case): array => ['value' => $case->value, 'label' => $case->label()],
             $cases,
         );
     }
