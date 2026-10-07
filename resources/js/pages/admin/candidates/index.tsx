@@ -58,6 +58,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AdminLayout from '@/layouts/admin-layout';
+import { validateCandidateContact } from '@/lib/candidate-validation';
 import { cn } from '@/lib/utils';
 
 interface JobPostingOption {
@@ -977,20 +978,21 @@ function EditCandidateDialog({
     interviewTypes,
     onOpenChange,
 }: EditCandidateDialogProps) {
-    const { data, setData, patch, processing, errors, clearErrors } = useForm<
-        CandidateProfileValues & {
-            name: string;
-            email: string;
-            phone: string;
-            job_posting_id: string;
-        }
-    >({
-        ...emptyCandidateProfile,
-        name: '',
-        email: '',
-        phone: '',
-        job_posting_id: '',
-    });
+    const { data, setData, patch, processing, errors, clearErrors, setError } =
+        useForm<
+            CandidateProfileValues & {
+                name: string;
+                email: string;
+                phone: string;
+                job_posting_id: string;
+            }
+        >({
+            ...emptyCandidateProfile,
+            name: '',
+            email: '',
+            phone: '',
+            job_posting_id: '',
+        });
 
     useEffect(() => {
         if (candidate) {
@@ -1022,6 +1024,16 @@ function EditCandidateDialog({
         e.preventDefault();
 
         if (!candidate) {
+            return;
+        }
+
+        clearErrors('email', 'phone');
+
+        const contactErrors = validateCandidateContact(data);
+
+        if (Object.keys(contactErrors).length > 0) {
+            setError(contactErrors);
+
             return;
         }
 
@@ -1078,6 +1090,7 @@ function EditCandidateDialog({
                             <Label htmlFor="edit-phone">Phone</Label>
                             <Input
                                 id="edit-phone"
+                                type="tel"
                                 value={data.phone}
                                 onChange={(e) =>
                                     setData('phone', e.target.value)

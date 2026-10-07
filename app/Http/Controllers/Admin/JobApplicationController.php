@@ -178,17 +178,18 @@ class JobApplicationController extends Controller
                 'sometimes',
                 'required',
                 'string',
-                'email',
+                'email:rfc',
                 'max:255',
                 Rule::unique('job_applications', 'email')
                     ->where(fn ($query) => $query->where('job_posting_id', $targetJobId))
                     ->ignore($jobApplication->id),
             ],
-            'phone' => ['sometimes', 'required', 'string', 'max:50'],
+            'phone' => ['sometimes', 'required', 'string', 'max:50', 'regex:'.JobApplication::PHONE_PATTERN],
             'job_posting_id' => ['sometimes', 'required', 'integer', Rule::exists('job_postings', 'id')],
             ...$this->candidateProfileRules(),
         ], [
             'email.unique' => 'This email is already added to the selected job.',
+            'phone.regex' => 'Enter a valid phone number (7-15 digits, optional + prefix).',
         ]);
 
         $jobApplication->update($validated);

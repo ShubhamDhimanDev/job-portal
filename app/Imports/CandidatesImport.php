@@ -73,8 +73,8 @@ class CandidatesImport implements ToCollection, WithHeadingRow
 
         $validator = Validator::make($values, [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'phone' => ['required', 'max:50'],
+            'email' => ['required', 'string', 'email:rfc', 'max:255'],
+            'phone' => ['required', 'max:50', 'regex:'.JobApplication::PHONE_PATTERN],
             'job' => ['required'],
             'resume_filename' => ['nullable', 'string'],
         ]);

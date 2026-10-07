@@ -98,3 +98,38 @@ test('the same email cannot be added twice to a job but can be added to another'
 
     expect(JobApplication::query()->where('email', 'jane@example.com')->count())->toBe(2);
 });
+
+test('candidate phone numbers must look like real phone numbers', function (string $phone, bool $valid) {
+    Storage::fake('local');
+    Bus::fake();
+
+    $response = $this->actingAs(User::factory()->create())->post('/admin/candidates', [
+        'job_posting_id' => JobPosting::factory()->create()->id,
+        'name' => 'Jane Doe',
+        'email' => 'jane@example.com',
+        'phone' => $phone,
+        'resume' => UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf'),
+    ]);
+
+    $valid ? $response->assertSessionHasNoErrors() : $response->assertSessionHasErrors('phone');
+})->with([
+    'plain digits' => ['9999999999', true],
+    'international format' => ['+91 98765-43210', true],
+    'brackets' => ['(022) 2345 6789', true],
+    'letters' => ['abcdefghij', false],
+    'too short' => ['12345', false],
+    'too long' => ['1234567890123456', false],
+    'mixed junk' => ['98765abc43', false],
+]);
+
+test('candidate email must be a valid address', function (string $email) {
+    $response = $this->actingAs(User::factory()->create())->post('/admin/candidates', [
+        'job_posting_id' => JobPosting::factory()->create()->id,
+        'name' => 'Jane Doe',
+        'email' => $email,
+        'phone' => '9999999999',
+        'resume' => UploadedFile::fake()->create('resume.pdf', 100, 'application/pdf'),
+    ]);
+
+    $response->assertSessionHasErrors('email');
+})->with(['no domain' => ['jane@'], 'no at' => ['jane.example.com'], 'spaces' => ['ja ne@example.com']]);

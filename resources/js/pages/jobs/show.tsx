@@ -11,9 +11,13 @@ import {
     Paperclip,
     Users,
 } from 'lucide-react';
-import { apply as applyToJob, index as jobsIndex } from '@/actions/App/Http/Controllers/JobBoardController';
+import {
+    apply as applyToJob,
+    index as jobsIndex,
+} from '@/actions/App/Http/Controllers/JobBoardController';
 import Reveal from '@/components/reveal';
 import ThemeLayout from '@/layouts/theme-layout';
+import { PHONE_ERROR, PHONE_PATTERN_SOURCE } from '@/lib/candidate-validation';
 
 interface JobDetail {
     title: string;
@@ -94,7 +98,11 @@ export default function JobShow({ job }: JobShowProps) {
                 <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1fr_400px] lg:px-8">
                     <Reveal className="min-w-0">
                         <div className="grid gap-6 rounded-3xl border border-brand-ink/10 bg-brand-cream/40 p-6 sm:grid-cols-2">
-                            <InfoRow icon={MapPin} label="Location" value={job.location} />
+                            <InfoRow
+                                icon={MapPin}
+                                label="Location"
+                                value={job.location}
+                            />
                             <InfoRow
                                 icon={Briefcase}
                                 label="Work Mode"
@@ -182,7 +190,12 @@ export default function JobShow({ job }: JobShowProps) {
                                 resetOnSuccess
                                 className="mt-6"
                             >
-                                {({ errors, processing, progress, wasSuccessful }) =>
+                                {({
+                                    errors,
+                                    processing,
+                                    progress,
+                                    wasSuccessful,
+                                }) =>
                                     wasSuccessful ? (
                                         <div className="flex flex-col items-center gap-3 py-8 text-center">
                                             <CheckCircle2 className="h-12 w-12 text-brand-gold" />
@@ -191,8 +204,8 @@ export default function JobShow({ job }: JobShowProps) {
                                             </p>
                                             <p className="text-sm text-brand-ink/60">
                                                 Thanks for applying — the Pradhi
-                                                Associates team will be in touch if
-                                                you&apos;re shortlisted.
+                                                Associates team will be in touch
+                                                if you&apos;re shortlisted.
                                             </p>
                                         </div>
                                     ) : (
@@ -251,6 +264,10 @@ export default function JobShow({ job }: JobShowProps) {
                                                     type="tel"
                                                     name="phone"
                                                     required
+                                                    pattern={
+                                                        PHONE_PATTERN_SOURCE
+                                                    }
+                                                    title={PHONE_ERROR}
                                                     className="w-full rounded-xl border border-brand-ink/15 bg-white px-4 py-2.5 text-sm text-brand-ink focus:border-brand-gold focus:ring-1 focus:ring-brand-gold focus:outline-none"
                                                 />
                                                 {errors.phone && (
@@ -265,7 +282,8 @@ export default function JobShow({ job }: JobShowProps) {
                                                     htmlFor="resume"
                                                     className="mb-1.5 block text-sm font-bold text-brand-ink/70"
                                                 >
-                                                    Resume (PDF, DOC, DOCX — max 5MB) *
+                                                    Resume (PDF, DOC, DOCX — max
+                                                    5MB) *
                                                 </label>
                                                 <div className="relative">
                                                     <Paperclip className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-brand-ink/40" />
@@ -285,7 +303,9 @@ export default function JobShow({ job }: JobShowProps) {
                                                 )}
                                                 {progress && (
                                                     <progress
-                                                        value={progress.percentage}
+                                                        value={
+                                                            progress.percentage
+                                                        }
                                                         max={100}
                                                         className="mt-2 h-1.5 w-full"
                                                     >
