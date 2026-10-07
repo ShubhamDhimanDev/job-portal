@@ -47,8 +47,8 @@ class JobApplication extends Model
     /** @use HasFactory<JobApplicationFactory> */
     use HasFactory;
 
-    /** Optional leading +, 7-15 digits, with spaces, dashes, dots or brackets allowed as separators. */
-    public const PHONE_PATTERN = '/^\+?(?:[\s\-().]*\d){7,15}[\s\-().]*$/';
+    /** Indian mobile: 10 digits starting 6-9, optional +91 / 91 / 0 prefix, spaces or dashes allowed. */
+    public const PHONE_PATTERN = '/^(?:(?:\+?91|0)[\s-]*)?[6-9](?:[\s-]*\d){9}$/';
 
     /**
      * @return array<string, string>

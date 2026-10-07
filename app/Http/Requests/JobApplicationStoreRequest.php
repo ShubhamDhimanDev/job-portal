@@ -46,7 +46,7 @@ class JobApplicationStoreRequest extends FormRequest
     {
         return [
             'email.unique' => "You've already applied to this role.",
-            'phone.regex' => 'Enter a valid phone number (7-15 digits, optional + prefix).',
+            'phone.regex' => 'Enter a valid 10-digit Indian mobile number (starting with 6-9, optional +91).',
             'resume.mimes' => 'Resume must be a PDF, DOC, or DOCX file.',
             'resume.max' => 'Resume must be smaller than 5MB.',
         ];

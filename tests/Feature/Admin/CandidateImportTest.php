@@ -134,13 +134,13 @@ test('processing an import creates candidates and reports issues', function () {
 
     $this->actingAs($admin)->post('/admin/candidates/import', [
         'spreadsheet' => makeCandidatesCsv([
-            ['Jane Doe', 'jane@example.com', '1111111111', 'laravel-dev', 'Jane.PDF'],
-            ['Bob Slug', 'bob@example.com', '2222222222', (string) $job->id, 'bob.docx'],
-            ['Dupe', 'dupe@example.com', '3333333333', 'laravel-dev', 'jane.pdf'],
-            ['No Job', 'nojob@example.com', '4444444444', 'missing-job', 'jane.pdf'],
-            ['No File', 'nofile@example.com', '5555555555', 'laravel-dev', 'ghost.pdf'],
-            ['Bad Type', 'bad@example.com', '6666666666', 'laravel-dev', 'notes.txt'],
-            ['Bad Email', 'not-an-email', '7777777777', 'laravel-dev', 'jane.pdf'],
+            ['Jane Doe', 'jane@example.com', '9111111111', 'laravel-dev', 'Jane.PDF'],
+            ['Bob Slug', 'bob@example.com', '9222222222', (string) $job->id, 'bob.docx'],
+            ['Dupe', 'dupe@example.com', '9333333333', 'laravel-dev', 'jane.pdf'],
+            ['No Job', 'nojob@example.com', '9444444444', 'missing-job', 'jane.pdf'],
+            ['No File', 'nofile@example.com', '9555555555', 'laravel-dev', 'ghost.pdf'],
+            ['Bad Type', 'bad@example.com', '9666666666', 'laravel-dev', 'notes.txt'],
+            ['Bad Email', 'not-an-email', '9777777777', 'laravel-dev', 'jane.pdf'],
         ]),
         'archive' => makeResumeZip([
             'jane.pdf' => 'pdf-content',
@@ -183,7 +183,7 @@ test('ai rating can be turned off for an import', function () {
     JobPosting::factory()->create(['slug' => 'laravel-dev']);
 
     $this->actingAs(User::factory()->create())->post('/admin/candidates/import', [
-        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '1111111111', 'laravel-dev', 'jane.pdf']]),
+        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '9111111111', 'laravel-dev', 'jane.pdf']]),
         'archive' => makeResumeZip(['jane.pdf' => 'pdf']),
         'rate_with_ai' => false,
     ])->assertSessionHasNoErrors();
@@ -199,7 +199,7 @@ test('a row with no resume filename is added without a resume', function () {
     JobPosting::factory()->create(['slug' => 'laravel-dev']);
 
     $this->actingAs(User::factory()->create())->post('/admin/candidates/import', [
-        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '1111111111', 'laravel-dev', '']]),
+        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '9111111111', 'laravel-dev', '']]),
     ])->assertSessionHasNoErrors();
 
     expect(JobApplication::query()->where('email', 'jane@example.com')->exists())->toBeTrue();
@@ -213,7 +213,7 @@ test('import without an archive still adds candidates, without resumes', functio
     JobPosting::factory()->create(['slug' => 'laravel-dev']);
 
     $this->actingAs(User::factory()->create())->post('/admin/candidates/import', [
-        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '1111111111', 'laravel-dev', 'jane.pdf']]),
+        'spreadsheet' => makeCandidatesCsv([['Jane', 'jane@example.com', '9111111111', 'laravel-dev', 'jane.pdf']]),
     ])->assertSessionHasNoErrors();
 
     $import = CandidateImport::query()->firstOrFail();
@@ -248,8 +248,8 @@ test('import reads the optional profile columns and ignores invalid ones with a 
     $header = 'name,email,phone,job,resume_filename,gender,date_of_birth,total_experience,relevant_experience,current_company,industry_type,current_designation,current_location,current_ctc,expected_ctc,notice_period,interview_type';
     $csv = implode("\n", [
         $header,
-        'Jane Doe,jane@example.com,1111111111,laravel-dev,,female,1995-04-12,6.5,4,Acme,IT,Developer,Pune,1200000,1500000,30 days,Face to Face',
-        'Bad Values,bad@example.com,2222222222,laravel-dev,,robot,not-a-date,lots,,,,,,,,,phone',
+        'Jane Doe,jane@example.com,9111111111,laravel-dev,,female,1995-04-12,6.5,4,Acme,IT,Developer,Pune,1200000,1500000,30 days,Face to Face',
+        'Bad Values,bad@example.com,9222222222,laravel-dev,,robot,not-a-date,lots,,,,,,,,,phone',
     ]);
 
     $this->actingAs(User::factory()->create())->post('/admin/candidates/import', [

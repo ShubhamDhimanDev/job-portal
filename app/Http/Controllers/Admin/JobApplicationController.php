@@ -189,7 +189,7 @@ class JobApplicationController extends Controller
             ...$this->candidateProfileRules(),
         ], [
             'email.unique' => 'This email is already added to the selected job.',
-            'phone.regex' => 'Enter a valid phone number (7-15 digits, optional + prefix).',
+            'phone.regex' => 'Enter a valid 10-digit Indian mobile number (starting with 6-9, optional +91).',
         ]);
 
         $jobApplication->update($validated);

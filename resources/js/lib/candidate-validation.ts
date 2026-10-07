@@ -1,12 +1,12 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Mirrors JobApplication::PHONE_PATTERN on the server. */
-export const PHONE_PATTERN_SOURCE = String.raw`\+?(?:[\s().\-]*\d){7,15}[\s().\-]*`;
+export const PHONE_PATTERN_SOURCE = String.raw`(?:(?:\+?91|0)[\s\-]*)?[6-9](?:[\s\-]*\d){9}`;
 
 const PHONE_PATTERN = new RegExp(`^${PHONE_PATTERN_SOURCE}$`);
 
 export const PHONE_ERROR =
-    'Enter a valid phone number (7-15 digits, optional + prefix).';
+    'Enter a valid 10-digit Indian mobile number (starting with 6-9, optional +91).';
 
 export function validateCandidateEmail(email: string): string | null {
     const value = email.trim();
