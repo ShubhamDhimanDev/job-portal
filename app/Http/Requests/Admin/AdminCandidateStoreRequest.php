@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Concerns\ValidatesCandidateProfile;
+use App\Models\JobApplication;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,12 +29,12 @@ class AdminCandidateStoreRequest extends FormRequest
             'email' => [
                 'required',
                 'string',
-                'email',
+                'email:rfc',
                 'max:255',
                 Rule::unique('job_applications', 'email')
                     ->where(fn ($query) => $query->where('job_posting_id', $this->input('job_posting_id'))),
             ],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ['required', 'string', 'max:50', 'regex:'.JobApplication::PHONE_PATTERN],
             'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
             'cover_note' => ['nullable', 'string', 'max:5000'],
         ];
@@ -46,6 +47,7 @@ class AdminCandidateStoreRequest extends FormRequest
     {
         return [
             'email.unique' => 'This candidate has already been added to the selected job.',
+            'phone.regex' => 'Enter a valid phone number (7-15 digits, optional + prefix).',
             'resume.mimes' => 'Resume must be a PDF, DOC, or DOCX file.',
             'resume.max' => 'Resume must be smaller than 5MB.',
         ];

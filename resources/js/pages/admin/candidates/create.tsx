@@ -25,6 +25,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AdminLayout from '@/layouts/admin-layout';
+import { validateCandidateContact } from '@/lib/candidate-validation';
 import { cn } from '@/lib/utils';
 
 interface JobPostingOption {
@@ -49,27 +50,38 @@ export default function CreateCandidate({
     genders,
     interviewTypes,
 }: CreateCandidateProps) {
-    const { data, setData, post, processing, errors } = useForm<
-        CandidateProfileValues & {
-            job_posting_id: string;
-            name: string;
-            email: string;
-            phone: string;
-            cover_note: string;
-            resume: File | null;
-        }
-    >({
-        ...emptyCandidateProfile,
-        job_posting_id: '',
-        name: '',
-        email: '',
-        phone: '',
-        cover_note: '',
-        resume: null,
-    });
+    const { data, setData, post, processing, errors, setError, clearErrors } =
+        useForm<
+            CandidateProfileValues & {
+                job_posting_id: string;
+                name: string;
+                email: string;
+                phone: string;
+                cover_note: string;
+                resume: File | null;
+            }
+        >({
+            ...emptyCandidateProfile,
+            job_posting_id: '',
+            name: '',
+            email: '',
+            phone: '',
+            cover_note: '',
+            resume: null,
+        });
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        clearErrors('email', 'phone');
+
+        const contactErrors = validateCandidateContact(data);
+
+        if (Object.keys(contactErrors).length > 0) {
+            setError(contactErrors);
+
+            return;
+        }
+
         post(store.url(), { forceFormData: true });
     };
 
@@ -137,6 +149,7 @@ export default function CreateCandidate({
                             <Input
                                 id="email"
                                 type="email"
+                                inputMode="email"
                                 value={data.email}
                                 onChange={(e) =>
                                     setData('email', e.target.value)
@@ -154,6 +167,7 @@ export default function CreateCandidate({
                             <Label htmlFor="phone">Phone</Label>
                             <Input
                                 id="phone"
+                                type="tel"
                                 value={data.phone}
                                 onChange={(e) =>
                                     setData('phone', e.target.value)

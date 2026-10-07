@@ -219,13 +219,13 @@ test('admin can edit candidate details', function () {
     $this->actingAs(User::factory()->create())->patch("/admin/candidates/{$application->id}", [
         'name' => 'New Name',
         'email' => 'new@example.com',
-        'phone' => '12345',
+        'phone' => '9876543210',
     ])->assertSessionHasNoErrors();
 
     $application->refresh();
     expect($application->name)->toBe('New Name');
     expect($application->email)->toBe('new@example.com');
-    expect($application->phone)->toBe('12345');
+    expect($application->phone)->toBe('9876543210');
     Bus::assertNotDispatched(RateCandidateApplication::class);
 });
 
