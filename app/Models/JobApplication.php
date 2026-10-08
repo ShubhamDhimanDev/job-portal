@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Actions\Candidates\NormalizeSkills;
 use App\Actions\Candidates\ParseNoticePeriodDays;
+use App\Concerns\HasReferenceCode;
 use App\Enums\AiRatingStatus;
 use App\Enums\ApplicationStatus;
 use App\Enums\Gender;
@@ -40,16 +42,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'ai_strengths',
     'ai_gaps',
     'ai_profile',
+    'skills',
     'ai_rated_at',
     'ai_error',
 ])]
 class JobApplication extends Model
 {
     /** @use HasFactory<JobApplicationFactory> */
-    use HasFactory;
+    use HasFactory, HasReferenceCode;
 
     /** Indian mobile: 10 digits starting 6-9, optional +91 / 91 / 0 prefix, spaces or dashes allowed. */
     public const PHONE_PATTERN = '/^(?:(?:\+?91|0)[\s-]*)?[6-9](?:[\s-]*\d){9}$/';
+
+    protected static function referenceCodePrefix(): string
+    {
+        return 'CAN';
+    }
 
     /**
      * @return array<string, string>
@@ -70,6 +78,7 @@ class JobApplication extends Model
             'ai_strengths' => 'array',
             'ai_gaps' => 'array',
             'ai_profile' => 'array',
+            'skills' => 'array',
             'ai_rated_at' => 'datetime',
         ];
     }
@@ -83,14 +92,18 @@ class JobApplication extends Model
     }
 
     /**
-     * Keep the numeric notice period used for filtering in step with the
-     * free-text value recruiters type.
+     * Keep the columns used for filtering in step with the free-text notice
+     * period and the skills list recruiters edit.
      */
     protected static function booted(): void
     {
         static::saving(function (JobApplication $application): void {
             if ($application->isDirty('notice_period')) {
                 $application->notice_period_days = app(ParseNoticePeriodDays::class)->handle($application->notice_period);
+            }
+
+            if ($application->isDirty('skills')) {
+                $application->skills_search = app(NormalizeSkills::class)->searchColumn($application->skills);
             }
         });
     }

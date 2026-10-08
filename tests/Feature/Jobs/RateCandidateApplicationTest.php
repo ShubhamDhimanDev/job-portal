@@ -124,6 +124,47 @@ test('rates a docx resume by extracting its text instead of attaching it', funct
     );
 });
 
+test('rates a legacy doc resume by extracting its text instead of attaching it', function () {
+    Storage::fake('local');
+
+    $jobPosting = fakeJobPosting();
+    $path = "resumes/{$jobPosting->id}/resume.doc";
+    Storage::disk('local')->put($path, file_get_contents(base_path('tests/Fixtures/resume-plain.doc')));
+
+    $application = JobApplication::factory()->for($jobPosting)->create([
+        'resume_path' => $path,
+        'ai_status' => AiRatingStatus::Pending,
+    ]);
+
+    CandidateRatingAgent::fake([
+        [
+            'profile' => [
+                'skills' => ['Java'],
+                'total_experience_years' => 8,
+                'education' => [],
+                'work_history' => [],
+                'certifications' => [],
+                'summary' => 'Senior Java developer.',
+            ],
+            'rating' => [
+                'score' => 6,
+                'reasoning' => 'Relevant but different stack.',
+                'strengths' => [],
+                'gaps' => [],
+            ],
+        ],
+    ]);
+
+    (new RateCandidateApplication($application))->handle();
+
+    expect($application->refresh()->ai_status)->toBe(AiRatingStatus::Completed)
+        ->and($application->ai_score)->toBe(6);
+
+    CandidateRatingAgent::assertPrompted(
+        fn ($prompt) => $prompt->contains('Senior Java Developer at Globex Technologies')
+    );
+});
+
 test('marks the application as failed when rating cannot complete', function () {
     Storage::fake('local');
 

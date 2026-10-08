@@ -20,6 +20,7 @@ import ThemeLayout from '@/layouts/theme-layout';
 import { PHONE_ERROR, PHONE_PATTERN_SOURCE } from '@/lib/candidate-validation';
 
 interface JobDetail {
+    code: string;
     title: string;
     slug: string;
     company_name: string | null;
@@ -80,9 +81,14 @@ export default function JobShow({ job }: JobShowProps) {
                     </Link>
 
                     <Reveal delay={80} className="mt-6 max-w-3xl">
-                        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-gold/20 px-3 py-1 text-xs font-bold tracking-wide text-brand-ink uppercase">
-                            {job.employment_type_label}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-gold/20 px-3 py-1 text-xs font-bold tracking-wide text-brand-ink uppercase">
+                                {job.employment_type_label}
+                            </span>
+                            <span className="text-sm font-medium text-brand-ink/50">
+                                Job code: {job.code}
+                            </span>
+                        </div>
                         <h1 className="mt-3 text-4xl font-extrabold text-brand-ink sm:text-5xl">
                             {job.title}
                         </h1>

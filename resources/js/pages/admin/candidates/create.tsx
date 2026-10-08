@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 
 interface JobPostingOption {
     id: number;
+    code: string;
     title: string;
 }
 
@@ -115,7 +116,7 @@ export default function CreateCandidate({
                                             key={job.id}
                                             value={String(job.id)}
                                         >
-                                            {job.title}
+                                            {job.code} · {job.title}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

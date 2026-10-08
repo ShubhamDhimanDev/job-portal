@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Actions\Candidates\ExtractDocumentText;
+use App\Actions\Candidates\NormalizeSkills;
 use App\Ai\Agents\CandidateRatingAgent;
 use App\Enums\AiRatingStatus;
 use App\Models\JobApplication;
@@ -11,11 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Files;
-use PhpOffice\PhpWord\Element\AbstractContainer;
-use PhpOffice\PhpWord\Element\Table;
-use PhpOffice\PhpWord\IOFactory;
 use Throwable;
 
 class RateCandidateApplication implements ShouldQueue
@@ -24,9 +22,23 @@ class RateCandidateApplication implements ShouldQueue
 
     public function __construct(public JobApplication $jobApplication) {}
 
+    /**
+     * The skills the AI found, used to fill the candidate's skills only while
+     * they have none of their own: a recruiter's edits survive a re-rate.
+     *
+     * @param  array<string, mixed>  $profile
+     * @return array<int, string>|null
+     */
+    private function skillsFrom(array $profile): ?array
+    {
+        $skills = app(NormalizeSkills::class)->handle($profile['skills'] ?? []);
+
+        return $skills === [] ? null : $skills;
+    }
+
     public function handle(): void
     {
-        if ($this->jobApplication->resume_path === null) {
+        if ($this->jobApplication->resume_path === null || $this->jobApplication->job_posting_id === null) {
             return;
         }
 
@@ -49,12 +61,13 @@ class RateCandidateApplication implements ShouldQueue
                     model: config('services.candidate_rating.model'),
                 )
                 : $agent->prompt(
-                    "Evaluate this candidate's resume for this job. Resume text follows:\n\n".$this->extractDocxText(),
+                    "Evaluate this candidate's resume for this job. Resume text follows:\n\n".app(ExtractDocumentText::class)->handle($this->jobApplication->resume_path),
                     provider: config('services.candidate_rating.provider'),
                     model: config('services.candidate_rating.model'),
                 );
 
             $this->jobApplication->update([
+                'skills' => $this->jobApplication->skills ?? $this->skillsFrom($response['profile']),
                 'ai_status' => AiRatingStatus::Completed,
                 'ai_score' => $response['rating']['score'],
                 'ai_reasoning' => $response['rating']['reasoning'],
@@ -76,44 +89,5 @@ class RateCandidateApplication implements ShouldQueue
                 'ai_error' => $e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * Extract plain text from a .doc/.docx resume, since document attachments
-     * on AI providers are PDF-native - DOCX isn't a supported attachment type.
-     */
-    private function extractDocxText(): string
-    {
-        $phpWord = IOFactory::load(
-            Storage::disk('local')->path($this->jobApplication->resume_path)
-        );
-
-        $text = '';
-
-        foreach ($phpWord->getSections() as $section) {
-            $text .= $this->extractContainerText($section);
-        }
-
-        return trim($text);
-    }
-
-    private function extractContainerText(AbstractContainer $container): string
-    {
-        $text = '';
-
-        foreach ($container->getElements() as $element) {
-            if ($element instanceof Table) {
-                foreach ($element->getRows() as $row) {
-                    foreach ($row->getCells() as $cell) {
-                        $text .= $this->extractContainerText($cell).' ';
-                    }
-                }
-            } elseif (method_exists($element, 'getText')) {
-                $value = $element->getText();
-                $text .= (is_string($value) ? $value : '').PHP_EOL;
-            }
-        }
-
-        return $text;
     }
 }

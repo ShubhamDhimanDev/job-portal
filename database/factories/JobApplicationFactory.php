@@ -30,4 +30,12 @@ class JobApplicationFactory extends Factory
             'admin_notes' => null,
         ];
     }
+
+    /**
+     * A candidate who is not assigned to any job.
+     */
+    public function unassigned(): static
+    {
+        return $this->state(fn (array $attributes): array => ['job_posting_id' => null]);
+    }
 }

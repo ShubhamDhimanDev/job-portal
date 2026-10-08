@@ -31,6 +31,7 @@ class JobPostingController extends Controller
             ->when(filled($search), function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('title', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
                         ->orWhere('location', 'like', "%{$search}%")
                         ->orWhereHas('company', fn ($query) => $query->where('name', 'like', "%{$search}%"));
                 });
@@ -40,6 +41,7 @@ class JobPostingController extends Controller
             ->withQueryString()
             ->through(fn (JobPosting $jobPosting) => [
                 'id' => $jobPosting->id,
+                'code' => $jobPosting->code,
                 'slug' => $jobPosting->slug,
                 'title' => $jobPosting->title,
                 'company' => $jobPosting->company->name,
@@ -151,7 +153,7 @@ class JobPostingController extends Controller
 
     public function duplicate(Request $request, JobPosting $jobPosting): RedirectResponse
     {
-        $copy = $jobPosting->replicate(['slug']);
+        $copy = $jobPosting->replicate(['slug', 'code']);
         $copy->title = "{$jobPosting->title} (Copy)";
         $copy->status = JobStatus::Draft;
         $copy->posted_by_id = $request->user()->id;

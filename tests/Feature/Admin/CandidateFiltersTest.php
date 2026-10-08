@@ -164,7 +164,7 @@ test('the export respects the experience, salary and notice period filters', fun
 
     $rows = IOFactory::load($response->baseResponse->getFile()->getRealPath())->getActiveSheet()->toArray();
 
-    expect(collect($rows)->skip(1)->pluck(2)->all())->toBe(['Included']);
+    expect(collect($rows)->skip(1)->pluck(4)->all())->toBe(['Included']);
 });
 
 test('the emailed export accepts the new filters and rejects invalid ones', function () {
@@ -191,6 +191,6 @@ test('the emailed export accepts the new filters and rejects invalid ones', func
         $rows = IOFactory::load($path)->getActiveSheet()->toArray();
         unlink($path);
 
-        return collect($rows)->skip(1)->pluck(2)->all() === ['Included'];
+        return collect($rows)->skip(1)->pluck(4)->all() === ['Included'];
     });
 });
