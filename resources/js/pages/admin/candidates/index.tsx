@@ -41,8 +41,8 @@ import {
     SkillsInput,
 } from '@/components/candidate-skills';
 import { ResumePreviewDialog } from '@/components/resume-preview-dialog';
-import { SkillsFilter } from '@/components/skills-filter';
-import type { SkillOption, SkillsMatch } from '@/components/skills-filter';
+import { SkillsFilter, parseSkills } from '@/components/skills-filter';
+import type { SkillsMatch } from '@/components/skills-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -189,7 +189,6 @@ interface CandidatesIndexProps {
     genders: EnumOption[];
     interviewTypes: EnumOption[];
     noticePeriods: EnumOption[];
-    skillOptions: SkillOption[];
     duplicateCount: number;
     filters: CandidateFilters;
     flash: {
@@ -243,7 +242,6 @@ export default function CandidatesIndex({
     genders,
     interviewTypes,
     noticePeriods,
-    skillOptions,
     duplicateCount,
     filters,
     flash,
@@ -270,7 +268,7 @@ export default function CandidatesIndex({
         filters.notice_period ?? 'all',
     );
     const [sort, setSort] = useState(filters.sort ?? 'newest');
-    const [skills, setSkills] = useState<string[]>(filters.skills);
+    const [skillsText, setSkillsText] = useState(filters.skills.join(', '));
     const [skillsMatch, setSkillsMatch] = useState<SkillsMatch>(
         filters.skills_match === 'any' ? 'any' : 'all',
     );
@@ -302,6 +300,8 @@ export default function CandidatesIndex({
     function applyFilters(e?: FormEvent) {
         e?.preventDefault();
         setSelectedIds([]);
+
+        const skills = parseSkills(skillsText);
 
         router.get(
             index.url(),
@@ -344,7 +344,7 @@ export default function CandidatesIndex({
         setSalaryMin('');
         setSalaryMax('');
         setNoticePeriod('all');
-        setSkills([]);
+        setSkillsText('');
         setSkillsMatch('all');
         setSort('newest');
         setSelectedIds([]);
@@ -723,10 +723,9 @@ export default function CandidatesIndex({
                                     Skills
                                 </Label>
                                 <SkillsFilter
-                                    options={skillOptions}
-                                    selected={skills}
+                                    value={skillsText}
                                     match={skillsMatch}
-                                    onChange={setSkills}
+                                    onChange={setSkillsText}
                                     onMatchChange={setSkillsMatch}
                                 />
                             </div>

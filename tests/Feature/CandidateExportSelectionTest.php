@@ -212,14 +212,18 @@ test('the skills filter can match any of the chosen skills', function () {
         ->and(emailedNames(['skills' => ['PHP', 'Go'], 'skills_match' => 'any']))->toBe(['Both', 'Only Go', 'Only PHP']);
 });
 
-test('a skill has to match whole, not as part of another skill', function () {
+test('a skill also matches part of another skill', function () {
     candidateNamed('Javascript dev', ['skills' => ['JavaScript']]);
     candidateNamed('Java dev', ['skills' => ['Java']]);
+    candidateNamed('React dev', ['skills' => ['React.js', 'Node']]);
     candidateNamed('Spaced', ['skills' => ['Machine Learning']]);
 
-    expect(listedNames('?skills[]=Java'))->toBe(['Java dev'])
-        ->and(listedNames('?skills[]=Script'))->toBe([])
-        ->and(listedNames('?skills[]='.urlencode('  machine   learning ')))->toBe(['Spaced']);
+    expect(listedNames('?skills[]=Java'))->toBe(['Java dev', 'Javascript dev'])
+        ->and(listedNames('?skills[]=Script'))->toBe(['Javascript dev'])
+        ->and(listedNames('?skills[]=react&skills[]=node'))->toBe(['React dev'])
+        ->and(listedNames('?skills[]=Python'))->toBe([])
+        ->and(listedNames('?skills[]='.urlencode('  machine   learning ')))->toBe(['Spaced'])
+        ->and(listedNames('?skills[]='.urlencode('chine lear')))->toBe(['Spaced']);
 });
 
 test('wildcard characters in a skill only match themselves', function () {
@@ -229,7 +233,7 @@ test('wildcard characters in a skill only match themselves', function () {
     candidateNamed('Plain C', ['skills' => ['CX']]);
 
     expect(listedNames('?skills[]='.urlencode('C_')))->toBe(['Underscore'])
-        ->and(listedNames('?skills[]='.urlencode('%')))->toBe([])
+        ->and(listedNames('?skills[]='.urlencode('%')))->toBe(['Percent'])
         ->and(listedNames('?skills[]='.urlencode('100%')))->toBe(['Percent'])
         ->and(listedNames('?skills[]='.urlencode('C#')))->toBe(['C sharp']);
 });
@@ -244,23 +248,15 @@ test('an empty or junk skills filter changes nothing', function () {
         ->and(listedNames('?skills[]=PHP&skills_match=bogus'))->toBe(['A']);
 });
 
-test('the list sends the skill filters back and the skills it can offer with their counts', function () {
+test('the list sends the skill filters back', function () {
     candidateNamed('One', ['skills' => ['PHP', 'laravel', 'Redis']]);
-    candidateNamed('Two', ['skills' => ['php', 'Laravel']]);
-    candidateNamed('Three', ['skills' => ['PHP']]);
-    candidateNamed('Four', ['skills' => null]);
-    candidateNamed('Five', ['skills' => []]);
 
     $this->actingAs(User::factory()->create())
         ->get('/admin/candidates?skills[]=PHP&skills[]=Redis&skills_match=any')
         ->assertInertia(fn (Assert $page) => $page
             ->where('filters.skills', ['PHP', 'Redis'])
             ->where('filters.skills_match', 'any')
-            ->where('skillOptions', [
-                ['name' => 'PHP', 'count' => 3],
-                ['name' => 'laravel', 'count' => 2],
-                ['name' => 'Redis', 'count' => 1],
-            ])
+            ->missing('skillOptions')
         );
 
     $this->actingAs(User::factory()->create())
