@@ -44,6 +44,8 @@ test('download returns an xlsx file with the expected headings', function () {
     $rows = readExportRows($response);
 
     expect($rows[0])->toBe([
+        'Candidate Code',
+        'Job Code',
         'Job Title',
         'Company',
         'Candidate Name',
@@ -64,6 +66,13 @@ test('download returns an xlsx file with the expected headings', function () {
         'Expected CTC',
         'Notice Period',
         'Interview Type',
+        'Skills',
+        'Comment',
+        'AI Fit Score (out of 10)',
+        'AI Rating Status',
+        'AI Reasoning',
+        'AI Strengths',
+        'AI Gaps',
     ]);
     expect($rows)->toHaveCount(3); // heading + 2 candidates
 });
@@ -87,8 +96,9 @@ test('download respects the current filters', function () {
     $dataRows = collect($rows)->skip(1);
 
     expect($dataRows)->toHaveCount(2);
-    expect($dataRows->pluck(2)->sort()->values()->all())->toBe(['Alice A', 'Alice B']);
-    expect($dataRows->pluck(0)->unique()->all())->toBe(['Backend Engineer']);
+    expect($dataRows->pluck(4)->sort()->values()->all())->toBe(['Alice A', 'Alice B']);
+    expect($dataRows->pluck(2)->unique()->all())->toBe(['Backend Engineer']);
+    expect($dataRows->pluck(1)->unique()->all())->toBe([$jobA->code]);
 });
 
 test('guest cannot email the candidates export', function () {
@@ -160,8 +170,47 @@ test('email export respects filters when building the attached export', function
         $rows = IOFactory::load($tempPath)->getActiveSheet()->toArray();
         unlink($tempPath);
 
-        $names = collect($rows)->skip(1)->pluck(2)->all();
+        $names = collect($rows)->skip(1)->pluck(4)->all();
 
         return $names === ['Included Candidate'];
     });
+});
+
+test('the export includes candidates without a job and can be limited to them', function () {
+    $job = JobPosting::factory()->for(Company::factory())->create();
+    JobApplication::factory()->create(['job_posting_id' => $job->id, 'name' => 'Assigned One']);
+    $unassigned = JobApplication::factory()->unassigned()->create(['name' => 'Floating One']);
+
+    $admin = User::factory()->create();
+
+    $all = readExportRows($this->actingAs($admin)->get('/admin/candidates/export'));
+    expect($all)->toHaveCount(3);
+
+    $rows = readExportRows($this->actingAs($admin)->get('/admin/candidates/export?job_posting_id=none'));
+
+    expect($rows)->toHaveCount(2)
+        ->and($rows[1][0])->toBe($unassigned->code)
+        ->and($rows[1][1])->toBeNull()
+        ->and($rows[1][2])->toBeNull()
+        ->and($rows[1][4])->toBe('Floating One');
+});
+
+test('the emailed export accepts the unassigned job filter', function () {
+    Mail::fake();
+
+    $this->actingAs(User::factory()->create())->post('/admin/candidates/email-export', [
+        'to' => ['hr@example.com'],
+        'subject' => 'Candidates',
+        'message' => 'Attached.',
+        'job_posting_id' => 'none',
+    ])->assertSessionHasNoErrors();
+
+    Mail::assertSent(CandidatesExportMail::class);
+
+    $this->actingAs(User::factory()->create())->post('/admin/candidates/email-export', [
+        'to' => ['hr@example.com'],
+        'subject' => 'Candidates',
+        'message' => 'Attached.',
+        'job_posting_id' => 'bogus',
+    ])->assertSessionHasErrors('job_posting_id');
 });

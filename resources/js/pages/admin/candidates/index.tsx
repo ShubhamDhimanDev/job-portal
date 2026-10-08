@@ -2,6 +2,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import {
     Copy,
     Download,
+    Eye,
     Mail,
     Pencil,
     Plus,
@@ -17,7 +18,6 @@ import {
     download,
     email,
 } from '@/actions/App/Http/Controllers/Admin/CandidateExportController';
-import { create as importCandidates } from '@/actions/App/Http/Controllers/Admin/CandidateImportController';
 import {
     create,
     destroy,
@@ -36,9 +36,17 @@ import type {
     CandidateProfileValues,
     EnumOption,
 } from '@/components/candidate-profile-fields';
+import {
+    CandidateSkillsDialog,
+    SkillsInput,
+} from '@/components/candidate-skills';
+import { ResumePreviewDialog } from '@/components/resume-preview-dialog';
+import { SkillsFilter } from '@/components/skills-filter';
+import type { SkillOption, SkillsMatch } from '@/components/skills-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -57,12 +65,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { UploadResumesDialog } from '@/components/upload-resumes-dialog';
 import AdminLayout from '@/layouts/admin-layout';
 import { validateCandidateContact } from '@/lib/candidate-validation';
 import { cn } from '@/lib/utils';
 
 interface JobPostingOption {
     id: number;
+    code: string;
     title: string;
 }
 
@@ -97,6 +107,7 @@ interface AiProfile {
 
 interface CandidateRow {
     id: number;
+    code: string;
     name: string;
     email: string;
     phone: string;
@@ -119,8 +130,9 @@ interface CandidateRow {
     applied_at: string | null;
     job_posting: {
         id: number;
+        code: string;
         title: string;
-    };
+    } | null;
     company_name: string | null;
     has_resume: boolean;
     resume_filename: string | null;
@@ -131,6 +143,7 @@ interface CandidateRow {
     ai_strengths: string[] | null;
     ai_gaps: string[] | null;
     ai_profile: AiProfile | null;
+    skills: string[];
     ai_error: string | null;
 }
 
@@ -164,6 +177,8 @@ interface CandidateFilters {
     salary_min: string | null;
     salary_max: string | null;
     notice_period: string | null;
+    skills: string[];
+    skills_match: string | null;
     sort: string | null;
 }
 
@@ -174,6 +189,7 @@ interface CandidatesIndexProps {
     genders: EnumOption[];
     interviewTypes: EnumOption[];
     noticePeriods: EnumOption[];
+    skillOptions: SkillOption[];
     duplicateCount: number;
     filters: CandidateFilters;
     flash: {
@@ -181,6 +197,8 @@ interface CandidatesIndexProps {
         error: string | null;
     };
 }
+
+const NO_JOB = 'none';
 
 const statusBadgeVariant: Record<
     string,
@@ -216,6 +234,8 @@ function parseAddressList(value: string): string[] {
     );
 }
 
+const MAX_EXPORT_SELECTION = 500;
+
 export default function CandidatesIndex({
     candidates,
     jobPostings,
@@ -223,6 +243,7 @@ export default function CandidatesIndex({
     genders,
     interviewTypes,
     noticePeriods,
+    skillOptions,
     duplicateCount,
     filters,
     flash,
@@ -249,12 +270,22 @@ export default function CandidatesIndex({
         filters.notice_period ?? 'all',
     );
     const [sort, setSort] = useState(filters.sort ?? 'newest');
+    const [skills, setSkills] = useState<string[]>(filters.skills);
+    const [skillsMatch, setSkillsMatch] = useState<SkillsMatch>(
+        filters.skills_match === 'any' ? 'any' : 'all',
+    );
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const showingDuplicates = filters.duplicates === '1';
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     const [reratingId, setReratingId] = useState<number | null>(null);
     const [aiDetailCandidate, setAiDetailCandidate] =
         useState<CandidateRow | null>(null);
     const [editCandidate, setEditCandidate] = useState<CandidateRow | null>(
+        null,
+    );
+    const [previewCandidate, setPreviewCandidate] =
+        useState<CandidateRow | null>(null);
+    const [skillsCandidate, setSkillsCandidate] = useState<CandidateRow | null>(
         null,
     );
 
@@ -270,6 +301,7 @@ export default function CandidatesIndex({
 
     function applyFilters(e?: FormEvent) {
         e?.preventDefault();
+        setSelectedIds([]);
 
         router.get(
             index.url(),
@@ -288,6 +320,11 @@ export default function CandidatesIndex({
                 salary_max: salaryMax || undefined,
                 notice_period:
                     noticePeriod === 'all' ? undefined : noticePeriod,
+                skills: skills.length > 0 ? skills : undefined,
+                skills_match:
+                    skills.length > 1 && skillsMatch === 'any'
+                        ? 'any'
+                        : undefined,
                 duplicates: showingDuplicates ? 1 : undefined,
                 sort: sort === 'newest' ? undefined : sort,
             },
@@ -307,7 +344,10 @@ export default function CandidatesIndex({
         setSalaryMin('');
         setSalaryMax('');
         setNoticePeriod('all');
+        setSkills([]);
+        setSkillsMatch('all');
         setSort('newest');
+        setSelectedIds([]);
         router.get(
             index.url(),
             {},
@@ -316,6 +356,7 @@ export default function CandidatesIndex({
     }
 
     function toggleDuplicates() {
+        setSelectedIds([]);
         router.get(index.url(), showingDuplicates ? {} : { duplicates: 1 }, {
             preserveState: true,
             preserveScroll: true,
@@ -330,7 +371,13 @@ export default function CandidatesIndex({
             return;
         }
 
-        router.delete(destroy.url(candidate.id), { preserveScroll: true });
+        router.delete(destroy.url(candidate.id), {
+            preserveScroll: true,
+            onSuccess: () =>
+                setSelectedIds((current) =>
+                    current.filter((id) => id !== candidate.id),
+                ),
+        });
     }
 
     function deleteDuplicates() {
@@ -342,7 +389,10 @@ export default function CandidatesIndex({
             return;
         }
 
-        router.delete(destroyDuplicates.url(), { preserveScroll: true });
+        router.delete(destroyDuplicates.url(), {
+            preserveScroll: true,
+            onSuccess: () => setSelectedIds([]),
+        });
     }
 
     function updateStatus(candidateId: number, newStatus: string) {
@@ -383,8 +433,37 @@ export default function CandidatesIndex({
         );
     }
 
+    const pageIds = candidates.data.map((candidate) => candidate.id);
+    const selectedOnPage = pageIds.filter((id) =>
+        selectedIds.includes(id),
+    ).length;
+
+    function selectCandidates(ids: number[]) {
+        const next = Array.from(new Set([...selectedIds, ...ids]));
+
+        if (next.length > MAX_EXPORT_SELECTION) {
+            toast.error(
+                `You can select up to ${MAX_EXPORT_SELECTION} candidates to export at a time.`,
+            );
+
+            return;
+        }
+
+        setSelectedIds(next);
+    }
+
+    function unselectCandidates(ids: number[]) {
+        setSelectedIds(selectedIds.filter((id) => !ids.includes(id)));
+    }
+
+    // Ticked candidates are exported on their own; with none ticked,
+    // everything matching the applied filters is exported.
     const exportUrl = download.url({
         query: {
+            duplicates: filters.duplicates ?? undefined,
+            skills: filters.skills.length > 0 ? filters.skills : undefined,
+            skills_match: filters.skills_match ?? undefined,
+            ids: selectedIds.length > 0 ? selectedIds.join(',') : undefined,
             job_posting_id: filters.job_posting_id ?? undefined,
             status: filters.status ?? undefined,
             date_from: filters.date_from ?? undefined,
@@ -426,12 +505,15 @@ export default function CandidatesIndex({
                                         <SelectItem value="all">
                                             All jobs
                                         </SelectItem>
+                                        <SelectItem value="none">
+                                            Unassigned
+                                        </SelectItem>
                                         {jobPostings.map((job) => (
                                             <SelectItem
                                                 key={job.id}
                                                 value={String(job.id)}
                                             >
-                                                {job.title}
+                                                {job.code} · {job.title}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -497,7 +579,7 @@ export default function CandidatesIndex({
                                     <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         className="pl-8"
-                                        placeholder="Name, email, phone"
+                                        placeholder="Name, email, phone, code"
                                         value={search}
                                         onChange={(e) =>
                                             setSearch(e.target.value)
@@ -636,6 +718,19 @@ export default function CandidatesIndex({
                                 </Select>
                             </div>
 
+                            <div className="lg:col-span-5">
+                                <Label className="mb-1.5 block text-xs text-muted-foreground">
+                                    Skills
+                                </Label>
+                                <SkillsFilter
+                                    options={skillOptions}
+                                    selected={skills}
+                                    match={skillsMatch}
+                                    onChange={setSkills}
+                                    onMatchChange={setSkillsMatch}
+                                />
+                            </div>
+
                             <div className="flex flex-wrap items-end gap-2 lg:col-span-7">
                                 <Button type="submit">Apply filters</Button>
                                 <Button
@@ -677,16 +772,15 @@ export default function CandidatesIndex({
                                             Delete duplicates ({duplicateCount})
                                         </Button>
                                     )}
-                                    <Button variant="outline" asChild>
-                                        <Link href={importCandidates.url()}>
-                                            <Upload />
-                                            Import
-                                        </Link>
-                                    </Button>
+                                    <UploadResumesDialog
+                                        jobPostings={jobPostings}
+                                    />
                                     <Button variant="outline" asChild>
                                         <a href={exportUrl}>
                                             <Download />
                                             Export
+                                            {selectedIds.length > 0 &&
+                                                ` (${selectedIds.length})`}
                                         </a>
                                     </Button>
 
@@ -694,6 +788,8 @@ export default function CandidatesIndex({
                                         open={emailDialogOpen}
                                         onOpenChange={setEmailDialogOpen}
                                         filters={filters}
+                                        selectedIds={selectedIds}
+                                        total={candidates.total}
                                     />
                                 </div>
                             </div>
@@ -709,20 +805,76 @@ export default function CandidatesIndex({
                                 ({candidates.total})
                             </span>
                         </CardTitle>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            {selectedIds.length > 0 ? (
+                                <>
+                                    <span className="font-medium text-foreground">
+                                        {selectedIds.length} selected
+                                    </span>
+                                    <span>
+                                        Export and Email export include only
+                                        these.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIds([])}
+                                        className="underline-offset-2 hover:underline"
+                                    >
+                                        Clear selection
+                                    </button>
+                                </>
+                            ) : (
+                                <span>
+                                    Export and Email export include all{' '}
+                                    {candidates.total} candidates matching the
+                                    filters. Tick rows to export only some.
+                                </span>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b text-left text-xs text-muted-foreground">
+                                        <th className="w-8 pr-3 pb-2">
+                                            <Checkbox
+                                                aria-label="Select all candidates on this page"
+                                                disabled={pageIds.length === 0}
+                                                checked={
+                                                    pageIds.length > 0 &&
+                                                    selectedOnPage ===
+                                                        pageIds.length
+                                                        ? true
+                                                        : selectedOnPage > 0
+                                                          ? 'indeterminate'
+                                                          : false
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    checked === true
+                                                        ? selectCandidates(
+                                                              pageIds,
+                                                          )
+                                                        : unselectCandidates(
+                                                              pageIds,
+                                                          )
+                                                }
+                                            />
+                                        </th>
                                         <th className="pr-3 pb-2 font-medium">
                                             Candidate
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
-                                            Job
+                                            Experience
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
-                                            Company
+                                            Current company
+                                        </th>
+                                        <th className="pr-3 pb-2 font-medium">
+                                            Location
+                                        </th>
+                                        <th className="pr-3 pb-2 font-medium">
+                                            Skills
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
                                             Status
@@ -742,11 +894,69 @@ export default function CandidatesIndex({
                                     {candidates.data.map((candidate) => (
                                         <tr
                                             key={candidate.id}
-                                            className="border-b last:border-0"
+                                            className={cn(
+                                                'border-b last:border-0',
+                                                selectedIds.includes(
+                                                    candidate.id,
+                                                ) && 'bg-muted/40',
+                                            )}
                                         >
+                                            <td className="py-3 pr-3 align-top">
+                                                <Checkbox
+                                                    aria-label={`Select ${candidate.name}`}
+                                                    checked={selectedIds.includes(
+                                                        candidate.id,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        checked === true
+                                                            ? selectCandidates([
+                                                                  candidate.id,
+                                                              ])
+                                                            : unselectCandidates(
+                                                                  [
+                                                                      candidate.id,
+                                                                  ],
+                                                              )
+                                                    }
+                                                />
+                                            </td>
                                             <td className="py-3 pr-3 align-top">
                                                 <div className="font-medium">
                                                     {candidate.name}
+                                                </div>
+                                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {candidate.code}
+                                                    </span>
+                                                    {candidate.job_posting ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="font-mono text-[10px] font-normal"
+                                                            title={[
+                                                                candidate
+                                                                    .job_posting
+                                                                    .title,
+                                                                candidate.company_name,
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(' · ')}
+                                                        >
+                                                            {
+                                                                candidate
+                                                                    .job_posting
+                                                                    .code
+                                                            }
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-[10px] font-normal text-muted-foreground"
+                                                        >
+                                                            Unassigned
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {candidate.email}
@@ -788,11 +998,49 @@ export default function CandidatesIndex({
                                                     </Button>
                                                 </div>
                                             </td>
-                                            <td className="py-3 pr-3 align-top">
-                                                {candidate.job_posting.title}
+                                            <td className="py-3 pr-3 align-top whitespace-nowrap">
+                                                <CandidateExperience
+                                                    candidate={candidate}
+                                                />
                                             </td>
                                             <td className="py-3 pr-3 align-top">
-                                                {candidate.company_name ?? '—'}
+                                                {candidate.current_company ||
+                                                candidate.current_designation ? (
+                                                    <>
+                                                        <div className="font-medium">
+                                                            {candidate.current_company ??
+                                                                '—'}
+                                                        </div>
+                                                        {candidate.current_designation && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {
+                                                                    candidate.current_designation
+                                                                }
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 pr-3 align-top">
+                                                {candidate.current_location ?? (
+                                                    <span className="text-muted-foreground">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 pr-3 align-top">
+                                                <CandidateSkills
+                                                    candidate={candidate}
+                                                    onOpen={() =>
+                                                        setSkillsCandidate(
+                                                            candidate,
+                                                        )
+                                                    }
+                                                />
                                             </td>
                                             <td className="py-3 pr-3 align-top">
                                                 <div className="flex flex-col gap-1.5">
@@ -891,6 +1139,14 @@ export default function CandidatesIndex({
                                                                 }
                                                             </Badge>
                                                         </button>
+                                                    ) : candidate.job_posting ===
+                                                      null ? (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="w-fit text-muted-foreground"
+                                                        >
+                                                            Not rated
+                                                        </Badge>
                                                     ) : (
                                                         <Badge
                                                             variant="outline"
@@ -909,8 +1165,16 @@ export default function CandidatesIndex({
                                                         className="h-6 px-1.5 text-xs text-muted-foreground"
                                                         disabled={
                                                             !candidate.has_resume ||
+                                                            candidate.job_posting ===
+                                                                null ||
                                                             reratingId ===
                                                                 candidate.id
+                                                        }
+                                                        title={
+                                                            candidate.job_posting ===
+                                                            null
+                                                                ? 'Assign a job to rate this candidate'
+                                                                : undefined
                                                         }
                                                         onClick={() =>
                                                             rerateCandidate(
@@ -939,21 +1203,36 @@ export default function CandidatesIndex({
                                             <td className="py-3 pr-3 align-top">
                                                 <div className="flex flex-col items-start gap-1.5">
                                                     {candidate.has_resume ? (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            asChild
-                                                        >
-                                                            <a
-                                                                href={resume.url(
-                                                                    candidate.id,
-                                                                )}
-                                                                download
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    setPreviewCandidate(
+                                                                        candidate,
+                                                                    )
+                                                                }
                                                             >
-                                                                <Download />
-                                                                Download
-                                                            </a>
-                                                        </Button>
+                                                                <Eye />
+                                                                View
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                asChild
+                                                            >
+                                                                <a
+                                                                    href={resume.url(
+                                                                        candidate.id,
+                                                                    )}
+                                                                    download
+                                                                >
+                                                                    <Download />
+                                                                    Download
+                                                                </a>
+                                                            </Button>
+                                                        </div>
                                                     ) : (
                                                         <Badge
                                                             variant="outline"
@@ -983,7 +1262,7 @@ export default function CandidatesIndex({
                                     {candidates.data.length === 0 && (
                                         <tr>
                                             <td
-                                                colSpan={7}
+                                                colSpan={10}
                                                 className="py-8 text-center text-muted-foreground"
                                             >
                                                 No candidates match these
@@ -1039,6 +1318,32 @@ export default function CandidatesIndex({
                 }}
             />
 
+            <ResumePreviewDialog
+                candidate={previewCandidate}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPreviewCandidate(null);
+                    }
+                }}
+            />
+
+            <CandidateSkillsDialog
+                candidate={
+                    skillsCandidate
+                        ? {
+                              name: skillsCandidate.name,
+                              code: skillsCandidate.code,
+                              skills: skillsCandidate.skills,
+                          }
+                        : null
+                }
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSkillsCandidate(null);
+                    }
+                }}
+            />
+
             <CandidateAiDetailDialog
                 candidate={aiDetailCandidate}
                 onOpenChange={(open) => {
@@ -1051,14 +1356,76 @@ export default function CandidatesIndex({
     );
 }
 
+function CandidateExperience({ candidate }: { candidate: CandidateRow }) {
+    const estimatedYears = candidate.ai_profile?.total_experience_years ?? null;
+    const totalYears = candidate.total_experience ?? estimatedYears;
+
+    if (totalYears === null && candidate.relevant_experience === null) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    return (
+        <div className="space-y-0.5">
+            {totalYears !== null && (
+                <div className="font-medium">
+                    {totalYears} yrs
+                    {candidate.total_experience === null && (
+                        <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            (AI est.)
+                        </span>
+                    )}
+                </div>
+            )}
+            {candidate.relevant_experience !== null && (
+                <div className="text-xs text-muted-foreground">
+                    {candidate.relevant_experience} yrs relevant
+                </div>
+            )}
+        </div>
+    );
+}
+
+const MAX_SKILLS_SHOWN = 6;
+
+interface CandidateSkillsProps {
+    candidate: CandidateRow;
+    onOpen: () => void;
+}
+
+function CandidateSkills({ candidate, onOpen }: CandidateSkillsProps) {
+    const skills = candidate.skills;
+
+    if (skills.length === 0) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={onOpen}
+            title="View all skills"
+            className="flex max-w-56 cursor-pointer flex-wrap gap-1 text-left"
+        >
+            {skills.slice(0, MAX_SKILLS_SHOWN).map((skill, index) => (
+                <Badge
+                    key={`${skill}-${index}`}
+                    variant="secondary"
+                    className="font-normal"
+                >
+                    {skill}
+                </Badge>
+            ))}
+            {skills.length > MAX_SKILLS_SHOWN && (
+                <Badge variant="outline" className="font-normal">
+                    +{skills.length - MAX_SKILLS_SHOWN} more
+                </Badge>
+            )}
+        </button>
+    );
+}
+
 function CandidateProfileSummary({ candidate }: { candidate: CandidateRow }) {
     const details = [
-        candidate.current_designation,
-        candidate.current_company,
-        candidate.current_location,
-        candidate.total_experience !== null
-            ? `${candidate.total_experience} yrs exp`
-            : null,
         candidate.expected_ctc !== null
             ? `Expected CTC ${candidate.expected_ctc}`
             : null,
@@ -1131,21 +1498,33 @@ function EditCandidateDialog({
     interviewTypes,
     onOpenChange,
 }: EditCandidateDialogProps) {
-    const { data, setData, patch, processing, errors, clearErrors, setError } =
-        useForm<
-            CandidateProfileValues & {
-                name: string;
-                email: string;
-                phone: string;
-                job_posting_id: string;
-            }
-        >({
-            ...emptyCandidateProfile,
-            name: '',
-            email: '',
-            phone: '',
-            job_posting_id: '',
-        });
+    const {
+        data,
+        setData,
+        patch,
+        processing,
+        errors,
+        clearErrors,
+        setError,
+        transform,
+    } = useForm<
+        CandidateProfileValues & {
+            name: string;
+            email: string;
+            phone: string;
+            job_posting_id: string;
+            skills: string[];
+            admin_notes: string;
+        }
+    >({
+        ...emptyCandidateProfile,
+        name: '',
+        email: '',
+        phone: '',
+        job_posting_id: NO_JOB,
+        skills: [],
+        admin_notes: '',
+    });
 
     useEffect(() => {
         if (candidate) {
@@ -1153,7 +1532,9 @@ function EditCandidateDialog({
                 name: candidate.name,
                 email: candidate.email,
                 phone: candidate.phone,
-                job_posting_id: String(candidate.job_posting.id),
+                job_posting_id: candidate.job_posting
+                    ? String(candidate.job_posting.id)
+                    : NO_JOB,
                 gender: candidate.gender ?? '',
                 date_of_birth: candidate.date_of_birth ?? '',
                 total_experience: candidate.total_experience?.toString() ?? '',
@@ -1167,11 +1548,17 @@ function EditCandidateDialog({
                 expected_ctc: candidate.expected_ctc?.toString() ?? '',
                 notice_period: candidate.notice_period ?? '',
                 interview_type: candidate.interview_type ?? '',
+                skills: candidate.skills,
+                admin_notes: candidate.admin_notes ?? '',
             });
             clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [candidate]);
+
+    const skillsError =
+        errors.skills ??
+        Object.entries(errors).find(([key]) => key.startsWith('skills.'))?.[1];
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -1190,6 +1577,14 @@ function EditCandidateDialog({
             return;
         }
 
+        transform((formData) => ({
+            ...formData,
+            job_posting_id:
+                formData.job_posting_id === NO_JOB
+                    ? null
+                    : formData.job_posting_id,
+        }));
+
         patch(update.url(candidate.id), {
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
@@ -1202,8 +1597,8 @@ function EditCandidateDialog({
                 <DialogHeader>
                     <DialogTitle>Edit candidate</DialogTitle>
                     <DialogDescription>
-                        Moving a candidate to another job re-runs their AI
-                        rating.
+                        Assigning or moving a candidate to a job re-runs their
+                        AI rating.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1269,12 +1664,15 @@ function EditCandidateDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value={NO_JOB}>
+                                    Unassigned
+                                </SelectItem>
                                 {jobPostings.map((job) => (
                                     <SelectItem
                                         key={job.id}
                                         value={String(job.id)}
                                     >
-                                        {job.title}
+                                        {job.code} · {job.title}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -1297,6 +1695,48 @@ function EditCandidateDialog({
                         />
                     </div>
 
+                    <div className="space-y-1.5">
+                        <Label htmlFor="edit-skills">Skills</Label>
+                        <SkillsInput
+                            id="edit-skills"
+                            skills={data.skills}
+                            onChange={(skills) => setData('skills', skills)}
+                        />
+                        {skillsError && (
+                            <p className="text-sm text-destructive">
+                                {skillsError}
+                            </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Filled in from the AI rating of the resume. Your
+                            changes are kept until the resume is replaced.
+                        </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="edit-comment">Comment</Label>
+                        <textarea
+                            id="edit-comment"
+                            rows={4}
+                            maxLength={5000}
+                            className="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            placeholder="Notes from a call, availability, anything worth remembering"
+                            value={data.admin_notes}
+                            onChange={(e) =>
+                                setData('admin_notes', e.target.value)
+                            }
+                        />
+                        {errors.admin_notes && (
+                            <p className="text-sm text-destructive">
+                                {errors.admin_notes}
+                            </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Internal note. The AI reads it when rating this
+                            candidate, so changing it re-runs the rating.
+                        </p>
+                    </div>
+
                     <DialogFooter>
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Saving…' : 'Save changes'}
@@ -1312,12 +1752,16 @@ interface EmailExportDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     filters: CandidateFilters;
+    selectedIds: number[];
+    total: number;
 }
 
 function EmailExportDialog({
     open,
     onOpenChange,
     filters,
+    selectedIds,
+    total,
 }: EmailExportDialogProps) {
     const { data, setData, post, processing, errors, reset, transform } =
         useForm({
@@ -1348,6 +1792,10 @@ function EmailExportDialog({
             salary_min: filters.salary_min ?? undefined,
             salary_max: filters.salary_max ?? undefined,
             notice_period: filters.notice_period ?? undefined,
+            duplicates: filters.duplicates ?? undefined,
+            skills: filters.skills.length > 0 ? filters.skills : undefined,
+            skills_match: filters.skills_match ?? undefined,
+            ids: selectedIds.length > 0 ? selectedIds : undefined,
         }));
 
         post(email.url(), {
@@ -1371,14 +1819,16 @@ function EmailExportDialog({
                 <Button>
                     <Mail />
                     Email export
+                    {selectedIds.length > 0 && ` (${selectedIds.length})`}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Email candidates export</DialogTitle>
                     <DialogDescription>
-                        Sends the currently filtered candidates as an Excel
-                        attachment.
+                        {selectedIds.length > 0
+                            ? `Sends the ${selectedIds.length} selected candidate${selectedIds.length === 1 ? '' : 's'} as an Excel attachment.`
+                            : `Sends all ${total} candidates matching the current filters as an Excel attachment.`}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1491,7 +1941,10 @@ function CandidateAiDetailDialog({
                                 )}
                             </DialogTitle>
                             <DialogDescription>
-                                AI fit rating for {candidate.job_posting.title}
+                                {candidate.code} · AI fit rating for{' '}
+                                {candidate.job_posting
+                                    ? `${candidate.job_posting.code} ${candidate.job_posting.title}`
+                                    : 'no job'}
                             </DialogDescription>
                         </DialogHeader>
 

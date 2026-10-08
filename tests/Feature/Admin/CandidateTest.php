@@ -3,6 +3,7 @@
 use App\Enums\AiRatingStatus;
 use App\Enums\ApplicationStatus;
 use App\Jobs\RateCandidateApplication;
+use App\Jobs\RefillCandidateFromResume;
 use App\Models\Company;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
@@ -87,6 +88,8 @@ test('candidates list filters by search term matching name, email, or phone', fu
 });
 
 test('admin can update a candidate status and notes', function () {
+    Bus::fake();
+
     $admin = User::factory()->create();
     $application = JobApplication::factory()->create(['status' => ApplicationStatus::New]);
 
@@ -275,8 +278,8 @@ test('admin can upload a resume for a candidate without one', function () {
     expect($application->resume_path)->toStartWith("resumes/{$application->job_posting_id}/");
     Storage::disk('local')->assertExists($application->resume_path);
     Bus::assertDispatched(
-        RateCandidateApplication::class,
-        fn (RateCandidateApplication $rating) => $rating->jobApplication->is($application)
+        RefillCandidateFromResume::class,
+        fn (RefillCandidateFromResume $refill) => $refill->jobApplication->is($application)
     );
 });
 
@@ -303,4 +306,74 @@ test('resume upload validates the file type', function () {
     $this->actingAs(User::factory()->create())->post("/admin/candidates/{$application->id}/resume", [
         'resume' => UploadedFile::fake()->create('cv.png', 100, 'image/png'),
     ])->assertSessionHasErrors('resume');
+});
+
+test('candidates list can show only candidates without a job', function () {
+    $job = JobPosting::factory()->create();
+    JobApplication::factory()->create(['job_posting_id' => $job->id]);
+    $unassigned = JobApplication::factory()->unassigned()->create(['name' => 'Floating Candidate']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/candidates?job_posting_id=none')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('candidates.data', 1)
+            ->where('candidates.data.0.id', $unassigned->id)
+            ->where('candidates.data.0.job_posting', null)
+            ->where('candidates.data.0.company_name', null)
+        );
+});
+
+test('an unassigned candidate can be assigned to a job and is then rated', function () {
+    Bus::fake();
+
+    $application = JobApplication::factory()->unassigned()->create();
+    $job = JobPosting::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->patch("/admin/candidates/{$application->id}", ['job_posting_id' => $job->id])
+        ->assertSessionHasNoErrors();
+
+    expect($application->refresh()->job_posting_id)->toBe($job->id);
+    Bus::assertDispatched(RateCandidateApplication::class);
+});
+
+test('a candidate can be unassigned from a job without being rated', function () {
+    Bus::fake();
+
+    $application = JobApplication::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->patch("/admin/candidates/{$application->id}", ['job_posting_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($application->refresh()->job_posting_id)->toBeNull();
+    Bus::assertNotDispatched(RateCandidateApplication::class);
+});
+
+test('rating an unassigned candidate is refused', function () {
+    Bus::fake();
+
+    $application = JobApplication::factory()->unassigned()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post("/admin/candidates/{$application->id}/rate")
+        ->assertSessionHas('error');
+
+    Bus::assertNotDispatched(RateCandidateApplication::class);
+});
+
+test('uploading a resume for an unassigned candidate stores it without rating', function () {
+    Storage::fake('local');
+    Bus::fake();
+
+    $application = JobApplication::factory()->unassigned()->create(['resume_path' => null]);
+
+    $this->actingAs(User::factory()->create())
+        ->post("/admin/candidates/{$application->id}/resume", [
+            'resume' => UploadedFile::fake()->create('resume.pdf', 50, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+
+    expect($application->refresh()->resume_path)->toStartWith('resumes/unassigned/');
+    Bus::assertNotDispatched(RateCandidateApplication::class);
 });

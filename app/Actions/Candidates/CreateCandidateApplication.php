@@ -14,31 +14,33 @@ class CreateCandidateApplication
 {
     /**
      * Create the application, storing the resume when there is one. The AI
-     * rating is only queued for candidates that have a resume to rate.
+     * rating is only queued for candidates that have a job to be rated against
+     * and a resume to rate.
      *
      * @param  array<string, mixed>  $attributes
      */
     public function handle(
-        JobPosting $jobPosting,
+        ?JobPosting $jobPosting,
         array $attributes,
         UploadedFile|string|null $resume = null,
         bool $rateWithAi = true,
     ): JobApplication {
-        $application = $jobPosting->applications()->create([
+        $application = JobApplication::query()->create([
             ...$attributes,
+            'job_posting_id' => $jobPosting?->id,
             'resume_path' => $resume === null ? null : $this->storeResume($jobPosting, $resume),
         ]);
 
-        if ($rateWithAi && $application->resume_path !== null) {
+        if ($rateWithAi && $jobPosting !== null && $application->resume_path !== null) {
             RateCandidateApplication::dispatch($application);
         }
 
         return $application;
     }
 
-    private function storeResume(JobPosting $jobPosting, UploadedFile|string $resume): string
+    private function storeResume(?JobPosting $jobPosting, UploadedFile|string $resume): string
     {
-        $directory = "resumes/{$jobPosting->id}";
+        $directory = 'resumes/'.($jobPosting?->id ?? 'unassigned');
 
         if ($resume instanceof UploadedFile) {
             $extension = $resume->extension() ?: $resume->getClientOriginalExtension();

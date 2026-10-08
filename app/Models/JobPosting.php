@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\HasReferenceCode;
 use App\Enums\EmploymentType;
 use App\Enums\JobStatus;
 use App\Enums\WorkMode;
@@ -36,7 +37,12 @@ use Illuminate\Support\Str;
 class JobPosting extends Model
 {
     /** @use HasFactory<JobPostingFactory> */
-    use HasFactory;
+    use HasFactory, HasReferenceCode;
+
+    protected static function referenceCodePrefix(): string
+    {
+        return 'JOB';
+    }
 
     /**
      * @return array<string, string>

@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    'resume_parsing' => [
+        'provider' => env('RESUME_PARSING_AI_PROVIDER', env('CANDIDATE_RATING_AI_PROVIDER', 'gemini')),
+        'model' => env('RESUME_PARSING_AI_MODEL', env('CANDIDATE_RATING_AI_MODEL', 'gemini-3.5-flash-lite')),
+    ],
+
     'candidate_rating' => [
         'provider' => env('CANDIDATE_RATING_AI_PROVIDER', 'gemini'),
         'model' => env('CANDIDATE_RATING_AI_MODEL', 'gemini-3.5-flash-lite'),

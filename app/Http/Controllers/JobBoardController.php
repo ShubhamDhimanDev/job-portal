@@ -82,6 +82,7 @@ class JobBoardController extends Controller
     private function transformJobSummary(JobPosting $jobPosting): array
     {
         return [
+            'code' => $jobPosting->code,
             'title' => $jobPosting->title,
             'slug' => $jobPosting->slug,
             'company_name' => $jobPosting->company?->name,

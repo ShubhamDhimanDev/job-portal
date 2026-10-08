@@ -5,6 +5,7 @@ import Reveal from '@/components/reveal';
 import ThemeLayout from '@/layouts/theme-layout';
 
 interface JobSummary {
+    code: string;
     title: string;
     slug: string;
     company_name: string | null;
@@ -211,9 +212,14 @@ export default function JobsIndex({ jobs, filters, employmentTypes, workModes }:
                                     delay={(i % 3) * 80}
                                     className="group flex h-full flex-col rounded-2xl border border-brand-ink/10 bg-white p-6 shadow-sm shadow-black/5 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-brand-gold/10"
                                 >
-                                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-gold/15 px-3 py-1 text-xs font-bold tracking-wide text-brand-ink uppercase">
-                                        {job.employment_type_label}
-                                    </span>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-gold/15 px-3 py-1 text-xs font-bold tracking-wide text-brand-ink uppercase">
+                                            {job.employment_type_label}
+                                        </span>
+                                        <span className="text-xs font-medium text-brand-ink/50">
+                                            {job.code}
+                                        </span>
+                                    </div>
 
                                     <h3 className="mt-4 text-xl font-bold text-brand-ink">
                                         {job.title}

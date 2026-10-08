@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum CandidateImportStatus: string
+enum ResumeUploadStatus: string
 {
     case Pending = 'pending';
     case Processing = 'processing';

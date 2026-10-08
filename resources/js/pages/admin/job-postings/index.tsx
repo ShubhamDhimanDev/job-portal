@@ -18,6 +18,7 @@ import jobPostings from '@/routes/admin/job-postings';
 
 interface JobPostingRow {
     id: number;
+    code: string;
     slug: string;
     title: string;
     company: string;
@@ -119,7 +120,7 @@ export default function JobPostingsIndex({
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search title, location, company…"
+                            placeholder="Search code, title, location, company…"
                             className="w-64"
                         />
                         <Select
@@ -164,6 +165,7 @@ export default function JobPostingsIndex({
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50 text-left text-xs font-medium text-muted-foreground uppercase">
                             <tr>
+                                <th className="px-4 py-3">Code</th>
                                 <th className="px-4 py-3">Title</th>
                                 <th className="px-4 py-3">Company</th>
                                 <th className="px-4 py-3">Location</th>
@@ -179,7 +181,7 @@ export default function JobPostingsIndex({
                             {paginatedJobPostings.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="px-4 py-8 text-center text-muted-foreground"
                                     >
                                         No job postings found.
@@ -188,6 +190,9 @@ export default function JobPostingsIndex({
                             )}
                             {paginatedJobPostings.data.map((job) => (
                                 <tr key={job.id} className="align-top">
+                                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
+                                        {job.code}
+                                    </td>
                                     <td className="px-4 py-3 font-medium">
                                         <Link
                                             href={jobPostings.edit.url(

@@ -35,7 +35,10 @@ class EmailCandidatesExportRequest extends FormRequest
 
             // Same filter fields as the candidates list / export, so the emailed
             // export matches whatever is currently filtered on screen.
-            'job_posting_id' => ['sometimes', 'nullable', 'integer', Rule::exists('job_postings', 'id')],
+            'job_posting_id' => ['sometimes', 'nullable', Rule::anyOf([
+                ['integer', Rule::exists('job_postings', 'id')],
+                [Rule::in(['none'])],
+            ])],
             'status' => ['sometimes', 'nullable', Rule::enum(ApplicationStatus::class)],
             'date_from' => ['sometimes', 'nullable', 'date'],
             'date_to' => ['sometimes', 'nullable', 'date', 'after_or_equal:date_from'],
@@ -46,6 +49,14 @@ class EmailCandidatesExportRequest extends FormRequest
             'salary_min' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'salary_max' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'notice_period' => ['sometimes', 'nullable', Rule::enum(NoticePeriodFilter::class)],
+            'duplicates' => ['sometimes', 'nullable', 'boolean'],
+            'skills' => ['sometimes', 'nullable', 'array', 'max:20'],
+            'skills.*' => ['string', 'max:50'],
+            'skills_match' => ['sometimes', 'nullable', Rule::in(['all', 'any'])],
+
+            // Only these candidates, when rows were ticked in the list.
+            'ids' => ['sometimes', 'nullable', 'array', 'max:500'],
+            'ids.*' => ['integer', 'min:1'],
         ];
     }
 }

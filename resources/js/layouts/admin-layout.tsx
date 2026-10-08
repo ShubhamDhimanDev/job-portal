@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Briefcase,
     Building2,
+    FileUp,
     KeyRound,
     LayoutDashboard,
     LogOut,
@@ -42,6 +43,7 @@ const navItems = [
     { label: 'Job Postings', href: '/admin/job-postings', icon: Briefcase },
     { label: 'Companies', href: '/admin/companies', icon: Building2 },
     { label: 'Candidates', href: '/admin/candidates', icon: Users },
+    { label: 'Upload Reports', href: '/admin/resume-uploads', icon: FileUp },
 ];
 
 function initials(name: string): string {
