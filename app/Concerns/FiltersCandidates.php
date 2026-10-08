@@ -75,7 +75,8 @@ trait FiltersCandidates
      * not assigned to a job.
      *
      * Skills match candidates who have all of the chosen skills, or any of
-     * them when `skills_match` is "any", ignoring case. `ids` limits the
+     * them when `skills_match` is "any", ignoring case and matching part of a
+     * skill too ("java" finds "JavaScript"). `ids` limits the
      * result to those candidates (used when an export has ticked rows).
      *
      * Experience is total experience in years. Salary is compared against
@@ -168,8 +169,9 @@ trait FiltersCandidates
 
     /**
      * Keep candidates that have every one of the skills (or any of them),
-     * matched whole against the derived search column. LIKE wildcards inside
-     * a skill name are escaped so "C_" or "100%" only match themselves.
+     * matched anywhere within their skills in the derived search column, so
+     * "react" also finds "React.js". LIKE wildcards inside a skill name are
+     * escaped so "C_" or "100%" only match themselves.
      *
      * @param  Builder<JobApplication>  $query
      * @param  array<int, string>  $skillKeys
@@ -179,7 +181,7 @@ trait FiltersCandidates
     {
         return $query->where(function (Builder $group) use ($skillKeys, $matchAny): void {
             foreach ($skillKeys as $key) {
-                $pattern = '%|'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $key).'|%';
+                $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $key).'%';
 
                 $matchAny
                     ? $group->orWhereRaw("skills_search like ? escape '!'", [$pattern])

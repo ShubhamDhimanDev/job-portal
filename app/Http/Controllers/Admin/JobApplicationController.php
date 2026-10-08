@@ -123,7 +123,6 @@ class JobApplicationController extends Controller
             'genders' => $this->enumOptions(Gender::cases()),
             'interviewTypes' => $this->enumOptions(InterviewType::cases()),
             'noticePeriods' => $this->enumOptions(NoticePeriodFilter::cases()),
-            'skillOptions' => $this->skillOptions(),
             'duplicateCount' => count($findDuplicateCandidates->redundantIds()),
             'filters' => [
                 'job_posting_id' => $filters['job_posting_id'] ?? null,
@@ -310,30 +309,6 @@ class JobApplicationController extends Controller
         }
 
         return back()->with('success', "Deleted {$deleted} duplicate ".Str::plural('candidate', $deleted).', keeping the oldest of each.');
-    }
-
-    /**
-     * Every skill any candidate has, with how many candidates have it, most
-     * common first. Skills are counted without regard to case, under the
-     * spelling they were first seen with.
-     *
-     * @return array<int, array{name: string, count: int}>
-     */
-    private function skillOptions(): array
-    {
-        $normalizeSkills = app(NormalizeSkills::class);
-        $options = [];
-
-        JobApplication::query()->whereNotNull('skills')->pluck('skills')->each(function (array $skills) use (&$options, $normalizeSkills): void {
-            foreach (array_unique(array_map($normalizeSkills->matchKey(...), $skills)) as $position => $key) {
-                $options[$key] ??= ['name' => $skills[$position], 'count' => 0];
-                $options[$key]['count']++;
-            }
-        });
-
-        usort($options, fn (array $a, array $b): int => [$b['count'], mb_strtolower($a['name'])] <=> [$a['count'], mb_strtolower($b['name'])]);
-
-        return array_slice($options, 0, 500);
     }
 
     /**
