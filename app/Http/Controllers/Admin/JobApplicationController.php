@@ -206,7 +206,18 @@ class JobApplicationController extends Controller
                     ->ignore($jobApplication->id),
             ],
             'phone' => ['sometimes', 'required', 'string', 'max:50', 'regex:'.JobApplication::PHONE_PATTERN],
-            'job_posting_id' => ['sometimes', 'nullable', 'integer', Rule::exists('job_postings', 'id')],
+            'job_posting_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('job_postings', 'id'),
+                Rule::when(
+                    ! $request->has('email'),
+                    Rule::unique('job_applications', 'job_posting_id')
+                        ->where(fn ($query) => $query->where('email', $jobApplication->email))
+                        ->ignore($jobApplication->id),
+                ),
+            ],
             'skills' => ['sometimes', 'array', 'max:'.NormalizeSkills::MAX_SKILLS],
             'skills.*' => ['nullable', 'string', 'max:'.NormalizeSkills::MAX_LENGTH],
             ...$this->candidateProfileRules(),
@@ -214,6 +225,7 @@ class JobApplicationController extends Controller
             'skills.max' => 'A candidate can have at most '.NormalizeSkills::MAX_SKILLS.' skills.',
             'skills.*.max' => 'Each skill can be at most '.NormalizeSkills::MAX_LENGTH.' characters.',
             'email.unique' => 'This email is already added to the selected job.',
+            'job_posting_id.unique' => 'This candidate is already added to the selected job.',
             'phone.regex' => 'Enter a valid 10-digit Indian mobile number (starting with 6-9, optional +91).',
         ]);
 

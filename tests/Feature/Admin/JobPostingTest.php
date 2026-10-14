@@ -76,7 +76,29 @@ test('posted_by_id is always the acting admin, never a submitted value', functio
     expect($jobPosting->posted_by_id)->not->toBe($otherUser->id);
 });
 
-test('job posting creation requires a valid company', function () {
+test('admin can create and list a job posting without a company', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/job-postings', validJobPostingPayload(Company::factory()->make(), ['company_id' => null]))
+        ->assertSessionHasNoErrors();
+
+    $jobPosting = JobPosting::query()->firstOrFail();
+
+    expect($jobPosting->company_id)->toBeNull();
+
+    $this->actingAs($user)->get('/admin/job-postings')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('jobPostings.data.0.company', null));
+
+    $this->actingAs($user)
+        ->put("/admin/job-postings/{$jobPosting->slug}", validJobPostingPayload(Company::factory()->make(), ['company_id' => null]))
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)->get("/admin/job-postings/{$jobPosting->slug}/edit")->assertOk();
+});
+
+test('job posting creation requires a valid company when one is given', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->post('/admin/job-postings', validJobPostingPayload(

@@ -14,7 +14,7 @@ import type {
 interface EditableJobPosting {
     id: number;
     slug: string;
-    company_id: number;
+    company_id: number | null;
     title: string;
     description: string;
     responsibilities: string | null;
@@ -140,7 +140,10 @@ export default function EditJobPosting({
                     workModes={workModes}
                     employmentTypes={employmentTypes}
                     defaultValues={{
-                        company_id: String(jobPosting.company_id),
+                        company_id:
+                            jobPosting.company_id !== null
+                                ? String(jobPosting.company_id)
+                                : '',
                         title: jobPosting.title,
                         description: jobPosting.description,
                         responsibilities: jobPosting.responsibilities ?? '',
