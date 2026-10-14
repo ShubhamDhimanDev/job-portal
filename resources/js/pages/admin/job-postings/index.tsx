@@ -21,7 +21,7 @@ interface JobPostingRow {
     code: string;
     slug: string;
     title: string;
-    company: string;
+    company: string | null;
     location: string;
     work_mode: string;
     employment_type: string;
@@ -204,7 +204,7 @@ export default function JobPostingsIndex({
                                         </Link>
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">
-                                        {job.company}
+                                        {job.company ?? '—'}
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">
                                         {job.location}

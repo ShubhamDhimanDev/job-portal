@@ -44,7 +44,7 @@ class JobPostingController extends Controller
                 'code' => $jobPosting->code,
                 'slug' => $jobPosting->slug,
                 'title' => $jobPosting->title,
-                'company' => $jobPosting->company->name,
+                'company' => $jobPosting->company?->name,
                 'location' => $jobPosting->location,
                 'work_mode' => $jobPosting->work_mode->label(),
                 'employment_type' => $jobPosting->employment_type->label(),

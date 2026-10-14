@@ -17,7 +17,7 @@ trait JobPostingValidationRules
     protected function jobPostingRules(): array
     {
         return [
-            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'responsibilities' => ['nullable', 'string'],

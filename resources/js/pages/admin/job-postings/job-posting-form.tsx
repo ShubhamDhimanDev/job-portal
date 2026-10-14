@@ -54,6 +54,8 @@ interface JobPostingFormProps {
     defaultValues?: Partial<JobPostingFormValues>;
 }
 
+const NO_COMPANY = 'none';
+
 const emptyValues: JobPostingFormValues = {
     company_id: '',
     title: '',
@@ -138,7 +140,10 @@ export default function JobPostingForm({
                         <Select
                             value={data.company_id}
                             onValueChange={(value) =>
-                                setData('company_id', value)
+                                setData(
+                                    'company_id',
+                                    value === NO_COMPANY ? '' : value,
+                                )
                             }
                         >
                             <SelectTrigger
@@ -146,9 +151,12 @@ export default function JobPostingForm({
                                 className="w-full"
                                 aria-invalid={Boolean(errors.company_id)}
                             >
-                                <SelectValue placeholder="Select a company" />
+                                <SelectValue placeholder="No company" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value={NO_COMPANY}>
+                                    No company
+                                </SelectItem>
                                 {companyOptions.map((company) => (
                                     <SelectItem
                                         key={company.id}
