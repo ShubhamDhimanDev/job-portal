@@ -106,6 +106,56 @@ test('admin can update a candidate status and notes', function () {
         ->admin_notes->toBe('Strong candidate, schedule interview.');
 });
 
+test('admin can mark a candidate as scheduled', function () {
+    $admin = User::factory()->create();
+    $application = JobApplication::factory()->create();
+
+    $this->actingAs($admin)
+        ->patch("/admin/candidates/{$application->id}", ['status' => 'scheduled'])
+        ->assertSessionHasNoErrors();
+
+    expect($application->fresh()->status)->toBe(ApplicationStatus::Scheduled);
+
+    $this->actingAs($admin)->get('/admin/candidates?status=scheduled')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('candidates.data', 1)
+            ->where('statuses.2', ['value' => 'scheduled', 'label' => 'Scheduled'])
+        );
+});
+
+test('admin can assign and unassign a job from the candidates list', function () {
+    Bus::fake();
+
+    $admin = User::factory()->create();
+    $job = JobPosting::factory()->create();
+    $application = JobApplication::factory()->create(['job_posting_id' => null]);
+
+    $this->actingAs($admin)
+        ->patch("/admin/candidates/{$application->id}", ['job_posting_id' => $job->id])
+        ->assertSessionHasNoErrors();
+
+    expect($application->fresh()->job_posting_id)->toBe($job->id);
+
+    $this->actingAs($admin)
+        ->patch("/admin/candidates/{$application->id}", ['job_posting_id' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($application->fresh()->job_posting_id)->toBeNull();
+});
+
+test('assigning a job the candidate email already applied to is rejected', function () {
+    $admin = User::factory()->create();
+    $job = JobPosting::factory()->create();
+    JobApplication::factory()->create(['job_posting_id' => $job->id, 'email' => 'dup@example.com']);
+    $application = JobApplication::factory()->create(['job_posting_id' => null, 'email' => 'dup@example.com']);
+
+    $this->actingAs($admin)
+        ->patch("/admin/candidates/{$application->id}", ['job_posting_id' => $job->id])
+        ->assertSessionHasErrors('job_posting_id');
+
+    expect($application->fresh()->job_posting_id)->toBeNull();
+});
+
 test('admin can download a candidate resume', function () {
     Storage::fake('local');
 

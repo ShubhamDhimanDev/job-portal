@@ -205,6 +205,7 @@ const statusBadgeVariant: Record<
 > = {
     new: 'secondary',
     shortlisted: 'default',
+    scheduled: 'default',
     on_hold: 'outline',
     rejected: 'destructive',
     hired: 'default',
@@ -400,6 +401,23 @@ export default function CandidatesIndex({
             update.url(candidateId),
             { status: newStatus },
             { preserveState: true, preserveScroll: true },
+        );
+    }
+
+    function updateJob(candidateId: number, value: string) {
+        router.patch(
+            update.url(candidateId),
+            { job_posting_id: value === NO_JOB ? null : value },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onError: (errors) => {
+                    toast.error(
+                        errors.job_posting_id ??
+                            'Could not change the candidate job.',
+                    );
+                },
+            },
         );
     }
 
@@ -864,6 +882,9 @@ export default function CandidatesIndex({
                                             Candidate
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
+                                            Job
+                                        </th>
+                                        <th className="pr-3 pb-2 font-medium">
                                             Experience
                                         </th>
                                         <th className="pr-3 pb-2 font-medium">
@@ -929,33 +950,6 @@ export default function CandidatesIndex({
                                                     <span className="font-mono text-xs text-muted-foreground">
                                                         {candidate.code}
                                                     </span>
-                                                    {candidate.job_posting ? (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="font-mono text-[10px] font-normal"
-                                                            title={[
-                                                                candidate
-                                                                    .job_posting
-                                                                    .title,
-                                                                candidate.company_name,
-                                                            ]
-                                                                .filter(Boolean)
-                                                                .join(' · ')}
-                                                        >
-                                                            {
-                                                                candidate
-                                                                    .job_posting
-                                                                    .code
-                                                            }
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="text-[10px] font-normal text-muted-foreground"
-                                                        >
-                                                            Unassigned
-                                                        </Badge>
-                                                    )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {candidate.email}
@@ -996,6 +990,81 @@ export default function CandidatesIndex({
                                                         Delete
                                                     </Button>
                                                 </div>
+                                            </td>
+                                            <td className="py-3 pr-3 align-top">
+                                                <Select
+                                                    value={
+                                                        candidate.job_posting
+                                                            ? String(
+                                                                  candidate
+                                                                      .job_posting
+                                                                      .id,
+                                                              )
+                                                            : NO_JOB
+                                                    }
+                                                    onValueChange={(value) =>
+                                                        updateJob(
+                                                            candidate.id,
+                                                            value,
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger
+                                                        className="h-8 w-fit text-xs"
+                                                        title={
+                                                            candidate.job_posting
+                                                                ? [
+                                                                      candidate
+                                                                          .job_posting
+                                                                          .title,
+                                                                      candidate.company_name,
+                                                                  ]
+                                                                      .filter(
+                                                                          Boolean,
+                                                                      )
+                                                                      .join(
+                                                                          ' · ',
+                                                                      )
+                                                                : 'No job assigned'
+                                                        }
+                                                    >
+                                                        <SelectValue>
+                                                            {candidate.job_posting ? (
+                                                                <span className="font-mono">
+                                                                    {
+                                                                        candidate
+                                                                            .job_posting
+                                                                            .code
+                                                                    }
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-muted-foreground">
+                                                                    Unassigned
+                                                                </span>
+                                                            )}
+                                                        </SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem
+                                                            value={NO_JOB}
+                                                        >
+                                                            Unassigned
+                                                        </SelectItem>
+                                                        {jobPostings.map(
+                                                            (job) => (
+                                                                <SelectItem
+                                                                    key={job.id}
+                                                                    value={String(
+                                                                        job.id,
+                                                                    )}
+                                                                >
+                                                                    {job.code} ·{' '}
+                                                                    {job.title}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
                                             </td>
                                             <td className="py-3 pr-3 align-top whitespace-nowrap">
                                                 <CandidateExperience
@@ -1261,7 +1330,7 @@ export default function CandidatesIndex({
                                     {candidates.data.length === 0 && (
                                         <tr>
                                             <td
-                                                colSpan={10}
+                                                colSpan={11}
                                                 className="py-8 text-center text-muted-foreground"
                                             >
                                                 No candidates match these
