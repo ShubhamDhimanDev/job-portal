@@ -10,10 +10,10 @@ interface ThemeLayoutProps {
 }
 
 const navLinks = [
-    { label: 'Home', href: '#top' },
-    { label: 'Services', href: '#services' },
-    { label: 'Approach', href: '#approach' },
-    { label: 'Contact', href: '#contact' },
+    { label: 'Home', href: '/#top' },
+    { label: 'Services', href: '/#services' },
+    { label: 'Approach', href: '/#approach' },
+    { label: 'Contact', href: '/#contact' },
 ];
 
 const mobileMenuVariants = {
@@ -106,7 +106,7 @@ export default function ThemeLayout({
                     </nav>
 
                     <motion.a
-                        href="#contact"
+                        href="/#contact"
                         whileHover={{ scale: 1.04, y: -1 }}
                         whileTap={{ scale: 0.97 }}
                         className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-brand-gold to-brand-amber px-6 py-3 text-base font-extrabold text-brand-ink shadow-lg shadow-brand-amber/40 lg:inline-flex"
@@ -165,7 +165,7 @@ export default function ThemeLayout({
                             </Link>
                             <motion.a
                                 variants={mobileLinkVariants}
-                                href="#contact"
+                                href="/#contact"
                                 onClick={() => setMobileOpen(false)}
                                 className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-gold to-brand-amber px-6 py-4 text-base font-extrabold text-brand-ink shadow-lg shadow-brand-amber/40"
                             >
